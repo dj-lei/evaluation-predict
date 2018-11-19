@@ -1,0 +1,5 @@
+SQLAlchemy==1.1.11
+pandas==0.20.2
+numpy==1.13.1
+xgboost==0.6a2
+scikit_learn==0.19.2
