@@ -26,13 +26,14 @@ from valuate.conf import algorithm_settings as als
 path = os.path.abspath(os.path.dirname(gl.__file__))
 path = path.replace('conf', '')
 
-from valuate.exception.api_error import SqlOperateError
-from valuate.exception.api_error import ApiParamsValueError
-from valuate.exception.api_error import ApiParamsTypeError
-from valuate.exception.api_error import ModelSlugPredictModelError
-from valuate.exception.api_error import ModelSlugPredictRecordError
-from valuate.exception.api_error import ModelSlugFeatureEngineeringError
-from valuate.exception.api_error import ModelSlugTrainError
+# from valuate.exception.api_error import SqlOperateError
+# from valuate.exception.api_error import ApiParamsValueError
+# from valuate.exception.api_error import ApiParamsTypeError
+# from valuate.exception.api_error import ModelSlugPredictModelError
+# from valuate.exception.api_error import ModelSlugPredictRecordError
+# from valuate.exception.api_error import ModelSlugFeatureEngineeringError
+# from valuate.exception.api_error import ModelSlugTrainError
+# from valuate.exception.statistics_except import StatisticsExcept
 
 from statistics import median
 from sqlalchemy import create_engine
@@ -46,13 +47,12 @@ from sklearn.model_selection import train_test_split, GridSearchCV
 from valuate.db import db_operate
 from valuate.db import process_tables
 from valuate.manual.manual import Manual
-from valuate.exception.statistics_except import StatisticsExcept
 
-# # 存储训练相关表
-# process_tables.store_train_relative_data()
-# # 生成训练相关表
-# manual = Manual()
-# manual.execute()
+# 存储训练相关表
+process_tables.store_train_relative_data()
+# 生成训练相关表
+manual = Manual()
+manual.execute()
 
 from valuate.process.process import Process
 

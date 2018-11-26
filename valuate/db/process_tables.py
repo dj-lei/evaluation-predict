@@ -6,10 +6,10 @@ def store_train_relative_data():
     查询训练数据并存储在tmp中
     """
     try:
-        # car_source = db_operate.query_produce_car_source()
-        # car_source.to_csv(path+'../tmp/train/car_source.csv', index=False)
-        # del car_source
-        # gc.collect()
+        car_source = db_operate.query_produce_car_source()
+        car_source.to_csv(path+'../tmp/train/car_source.csv', index=False)
+        del car_source
+        gc.collect()
 
         # competitor_data = db_operate.query_produce_competitor_data()
         # competitor_data.to_csv(path+'../tmp/train/competitor_data.csv', index=False)

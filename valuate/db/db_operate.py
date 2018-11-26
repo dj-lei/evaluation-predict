@@ -310,12 +310,11 @@ def query_produce_car_source():
     """
     查询款型库
     """
-    pub_time = (datetime.datetime.now() - datetime.timedelta(days=90)).strftime('%Y-%m-%d')
+    pub_time = (datetime.datetime.now() - datetime.timedelta(days=180)).strftime('%Y-%m-%d')
 
     query_sql = 'select cs.pub_time,cs.brand_slug,cs.model_slug,cs.model_detail_slug,cs.mile,cs.year,cs.month,cs.city,cs.province,cs.popularity,cs.domain,cs.price,omd.price_bn,cs.status,cs.source_type,cs.expired_at,cs.sold_time from car_source as cs ' \
-                'left join car_detail_info as cdi on cs.id = cdi.car_id ' \
                 'left join open_model_detail as omd on cs.model_detail_slug = omd.detail_model_slug ' \
-                ' where cdi.mdn_status = \'P\' and cs.global_sibling = 0 and cs.model_detail_slug is not null and cs.pub_time >= \''+pub_time+'\' '
+                ' where cs.global_sibling = 0 and cs.model_detail_slug is not null and cs.pub_time >= \''+pub_time+'\' '
 
     engine = create_engine(gl.PRODUCE_PINGJIA_ENGINE, encoding=gl.ENCODING)
     return pd.read_sql_query(query_sql, engine)
