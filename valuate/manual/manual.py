@@ -46,14 +46,6 @@ class Manual(object):
         open_model_detail['control'] = open_model_detail['control'].fillna('自动')
         os.makedirs(os.path.dirname(path + 'predict/map/model_detail_map.csv'), exist_ok=True)
         open_model_detail.to_csv(path + 'predict/map/model_detail_map.csv', index=False)
-        # 生成促销表
-        open_4s_price_clear = pd.read_csv(path + '../tmp/train/open_4s_price_clear.csv').rename(columns={'detail_model_slug': 'model_detail_slug', 'price': 'promotion_price'})
-        open_4s_price_clear = open_4s_price_clear.drop(['price_bn'], axis=1)
-        omd = open_model_detail.loc[:, ['brand_slug', 'model_slug', 'model_detail_slug', 'price_bn']]
-        open_4s_price_clear = open_4s_price_clear.merge(omd, how='left', on=['model_detail_slug'])
-        open_4s_price_clear = open_4s_price_clear.loc[(open_4s_price_clear['promotion_price'] < open_4s_price_clear['price_bn']), :]
-        open_4s_price_clear = open_4s_price_clear.groupby(['brand_slug', 'model_slug', 'model_detail_slug', 'province'])['promotion_price'].median().reset_index()
-        open_4s_price_clear.to_csv(path + 'predict/map/promotion_4s_price.csv', index=False)
 
     def generate_others_predict_relate_tables(self):
         """
@@ -73,23 +65,6 @@ class Manual(object):
         self.province_city_map = self.province_city_map.loc[:, ['province_id', 'province', 'city', 'city_id']]
         self.province_city_map['create_time'] = cur_time
         self.province_city_map.to_csv(path + 'predict/map/province_city_map.csv', index=False)
-
-        # 生成省份车型流行度匹配表
-        open_category = pd.read_csv(path + '../tmp/train/open_category.csv')
-        model_slug = open_category[open_category['parent'].notnull()]
-        model_slug.reset_index(inplace=True)
-        model_slug = model_slug.rename(columns={'id': 'model_slug_id', 'slug': 'model_slug'})
-        model_slug = model_slug.loc[:, ['model_slug', 'model_slug_id']]
-
-        self.open_province_popularity = pd.read_csv(path+'../tmp/train/open_province_popularity.csv')
-        self.open_province_popularity = self.open_province_popularity.loc[:, ['province', 'model_slug', 'popularity']]
-        province = province.rename(columns={'parent': 'province_id'})
-        province = province.loc[:, ['province_id', 'province']]
-        self.open_province_popularity = self.open_province_popularity.merge(model_slug, how='left', on='model_slug')
-        self.open_province_popularity = self.open_province_popularity.merge(province, how='left', on='province')
-        self.open_province_popularity = self.open_province_popularity[self.open_province_popularity['model_slug_id'].notnull()]
-        self.open_province_popularity['model_slug_id'] = self.open_province_popularity['model_slug_id'].astype(int)
-        self.open_province_popularity.to_csv(path + 'predict/map/province_popularity_map.csv', index=False)
 
     def execute(self):
         """

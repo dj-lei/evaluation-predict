@@ -48,12 +48,6 @@ from valuate.db import db_operate
 from valuate.db import process_tables
 from valuate.manual.manual import Manual
 
-# 存储训练相关表
-process_tables.store_train_relative_data()
-# 生成训练相关表
-manual = Manual()
-manual.execute()
-
 from valuate.process.process import Process
 
 
