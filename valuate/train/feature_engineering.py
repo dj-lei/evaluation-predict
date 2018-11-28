@@ -8,6 +8,39 @@ def cal_z_score(df):
     return abs((df['price'] - df['mean_value']) / (df['std_value']))
 
 
+def func(a, x):
+    """
+    拟合函数
+    """
+    k = a
+    return k * x
+
+
+def dist(a, x, y):
+    """
+    残差
+    """
+    return func(a, x) - y
+
+
+def cal_newton_min_param(x, y, c):
+    """
+    牛顿k参数
+    """
+    k = 0
+    temp = float("inf")
+    for step in range(0, 1000):
+        k = -step * 0.001
+        div = 0
+        for i in range(0, len(x)):
+            div = div + (c * math.e ** (k * x[i]) - y[i]) ** 2
+        if temp < div:
+            return k
+        else:
+            temp = div
+    return k
+
+
 class FeatureEngineering(object):
 
     def __init__(self):
@@ -92,7 +125,7 @@ class FeatureEngineering(object):
         # 根据款型计算均值
         median_price = self.train.groupby(['brand_area', 'brand_slug', 'model_slug', 'model_detail_slug', 'online_year', 'price_bn'])['price'].median().reset_index().rename(columns={'price': 'median_price'})
         median_price = median_price.sort_values(by=['brand_slug', 'model_slug', 'online_year', 'price_bn']).reset_index(drop=True)
-
+        median_price.to_csv(path + '../tmp/train/test.csv', index=False)
         # 根据年限,统计指导价差值的价格差
         model_year = median_price.loc[:, ['model_slug', 'online_year']]
         model_year = model_year.drop_duplicates(['model_slug', 'online_year']).reset_index(drop=True)
@@ -109,7 +142,33 @@ class FeatureEngineering(object):
                 result.loc[count, ['model_slug', 'online_year', 'price_bn_div', 'price_div']] = [model_slug, online_year, price_bn_div, price_div]
                 count = count + 1
 
-        result.to_csv(path + '../tmp/train/test.csv', index=False)
+        # 拟合车系年份线性k参数
+        model_slug = self.model_global_mean.loc[:, ['global_slug', 'brand_area']].drop_duplicates(['global_slug', 'brand_area']).reset_index(drop=True).rename(columns={'global_slug': 'model_slug'})
+        result = result.merge(model_slug, how='left', on=['model_slug'])
+        brand_area_year = result.loc[:, ['brand_area', 'online_year']].drop_duplicates(['brand_area', 'online_year']).reset_index(drop=True)
+
+        count = 0
+        k_param = pd.DataFrame([], columns=['brand_area', 'online_year', 'k'])
+        for brand_area, online_year in brand_area_year.loc[:, ['brand_area', 'online_year']].values:
+            temp = result.loc[(result['brand_area'] == brand_area) & (result['online_year'] == online_year), :].reset_index(drop=True)
+            if len(temp) <= 1:
+                continue
+            param = [0]
+            var = leastsq(dist, param, args=(np.array(list(temp.price_bn_div.values)), np.array(list(temp.price_div.values))))
+            k = var[0][0]
+
+            k_param.loc[count, ['brand_area', 'online_year', 'k']] = [brand_area, online_year, k]
+            count = count + 1
+        k_param = k_param.sort_values(by=['brand_area', 'online_year']).reset_index(drop=True)
+        k_param['used_years'] = datetime.datetime.now().year - k_param['online_year']
+        k_param.loc[(k_param['used_years'] < 0), 'used_years'] = 0
+
+        # 计算牛顿k参数
+        c = median(k_param.loc[(k_param['used_years'] == 0), 'k'].values)
+        k = cal_newton_min_param(list(k_param.used_years.values), list(k_param.k.values), c)
+        used_years_k_param = [[i, c * math.e ** (k * i)] for i in range(0, 21)]
+        print(used_years_k_param)
+
         # self.model_global_mean = self.model_global_mean.merge(median_price.loc[:, ['model_detail_slug', 'median_price']], how='left', on=['model_detail_slug'])
         # self.model_global_mean = self.model_global_mean.sort_values(by=['brand_name', 'global_name', 'online_year', 'price_bn'])
         # self.model_global_mean.to_csv(path + '../tmp/train/test.csv', index=False)

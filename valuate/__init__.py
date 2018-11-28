@@ -43,6 +43,7 @@ from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.ensemble import RandomForestRegressor, ExtraTreesRegressor
 from sklearn.externals import joblib
 from sklearn.model_selection import train_test_split, GridSearchCV
+from scipy.optimize import leastsq
 
 from valuate.db import db_operate
 from valuate.db import process_tables
