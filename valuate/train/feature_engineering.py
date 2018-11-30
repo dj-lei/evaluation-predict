@@ -74,7 +74,7 @@ def find_hedge(df, hedge):
 class FeatureEngineering(object):
 
     def __init__(self):
-        # self.train = pd.read_csv(path + '../tmp/train/car_source.csv')
+        self.train = pd.read_csv(path + '../tmp/train/car_source.csv')
         self.province_city_map = pd.read_csv(path + 'predict/map/province_city_map.csv')
         self.open_category = pd.read_csv(path + '../tmp/train/open_category.csv')
         brand = self.open_category.loc[(self.open_category['parent'].isnull()), :]
@@ -93,7 +93,7 @@ class FeatureEngineering(object):
                             ['brand_name', 'global_name', 'detail_model', 'brand_slug', 'global_slug', 'model_detail_slug', 'online_year', 'price_bn',
                              'volume', 'control', 'emission_standard', 'brand_area']]
         self.open_model_detail = self.open_model_detail.loc[:,
-                            ['brand_name', 'global_name', 'detail_model', 'model_detail_slug', 'year',
+                            ['brand_name', 'global_name', 'detail_model', 'model_detail_slug', 'online_year',
                              'volume', 'control', 'emission_standard', 'brand_area']]
 
     ###########################
@@ -192,7 +192,6 @@ class FeatureEngineering(object):
             newton_k.loc[count, ['brand_area', 'c', 'k']] = [brand_area, b, k]
             count = count + 1
 
-        print(newton_k)
         # 生成车系保值率
         hedge = pd.DataFrame([], columns=['brand_area', 'used_years', 'hedge'])
         for brand_area in list(set(newton_k.brand_area.values)):
@@ -207,7 +206,7 @@ class FeatureEngineering(object):
         self.model_global_mean['hedge'] = np.NAN
         self.model_global_mean['predict_price'] = np.NAN
         self.model_global_mean[['hedge', 'predict_price']] = self.model_global_mean.apply(find_hedge, args=(hedge,), axis=1)
-        self.model_global_mean.to_csv(path + '../tmp/train/test.csv', index=False)
+        self.model_global_mean.to_csv(path + '../tmp/train/model_global_mean.csv', index=False)
 
     def generate_province_div_map(self):
         """
@@ -223,7 +222,7 @@ class FeatureEngineering(object):
         miss_province = pd.DataFrame(pd.Series(miss_province), columns=['province'])
         miss_province['price_div'] = 0
         self.train = self.train.append(miss_province)
-        self.train.to_csv(path + '../tmp/train/test_province.csv', index=False)
+        self.train.to_csv(path + '../tmp/train/div_province.csv', index=False)
 
     def generate_warehouse_years_div_map(self):
         """
@@ -254,7 +253,8 @@ class FeatureEngineering(object):
         param = [0]
         var = leastsq(dist_no_b, param, args=(np.array(list(result.warehouse_year.values)), np.array(list(result.rate.values))))
         k = var[0]
-        print(k)
+        k = pd.DataFrame([k], columns=['k'])
+        k.to_csv(path + '../tmp/train/div_warehouse.csv', index=False)
 
     def generate_mile_div_map(self):
         """
@@ -270,15 +270,16 @@ class FeatureEngineering(object):
         param = [0, 0]
         var = leastsq(dist, param, args=(np.array(list(self.train.mile_per_month.values)), np.array(list(self.train.price_div.values))))
         k, b = var[0]
-        print(k, b)
+        k = pd.DataFrame([[k, b]], columns=['k', 'b'])
+        k.to_csv(path + '../tmp/train/div_mile.csv', index=False)
 
     def execute(self):
         """
         执行
         """
-        # self.handle_data_quality()
-        # self.handle_data_preprocess()
-        # self.generate_model_global_mean()
-        # self.generate_province_div_map()
-        # self.generate_warehouse_years_div_map()
+        self.handle_data_quality()
+        self.handle_data_preprocess()
+        self.generate_model_global_mean()
+        self.generate_province_div_map()
+        self.generate_warehouse_years_div_map()
         self.generate_mile_div_map()
