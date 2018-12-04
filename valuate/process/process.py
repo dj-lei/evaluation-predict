@@ -13,15 +13,15 @@ class Process(object):
         """
         try:
             # 存储训练相关表
-            # process_tables.store_train_relative_data()
+            process_tables.store_train_relative_data()
             # # 生成训练相关表
             # manual = Manual()
             # manual.execute()
 
             # 特征工程
             time1 = time.time()
-            fe = FeatureEngineering()
-            fe.execute()
+            # fe = FeatureEngineering()
+            # fe.execute()
             time2 = time.time()
             print(time2-time1)
 

@@ -43,7 +43,8 @@ def store_train_relative_data():
         # gc.collect()
         print('下载训练相关表数据,已完成!')
     except Exception:
-        raise SqlOperateError(gl.ERROR_SQL_DESC_QUERY, traceback.format_exc())
+        print(traceback.format_exc())
+        # raise SqlOperateError(gl.ERROR_SQL_DESC_QUERY, traceback.format_exc())
 
 
 def store_models_divinable():
