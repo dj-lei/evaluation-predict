@@ -14,7 +14,7 @@ class Process(object):
         try:
             # 存储训练相关表
             # process_tables.store_train_relative_data()
-            # 生成训练相关表
+            # # 生成训练相关表
             # manual = Manual()
             # manual.execute()
 

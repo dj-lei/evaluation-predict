@@ -16,26 +16,26 @@ def store_train_relative_data():
         # del competitor_data
         # gc.collect()
 
-        open_model_detail = db_operate.query_produce_open_model_detail()
-        open_model_detail = open_model_detail.rename(columns={'detail_model_slug': 'model_detail_slug'})
-        open_model_detail.to_csv(path+'../tmp/train/open_model_detail.csv', index=False)
-        del open_model_detail
-        gc.collect()
-
-        open_category = db_operate.query_produce_open_category()
-        open_category.to_csv(path+'../tmp/train/open_category.csv', index=False)
-        del open_category
-        gc.collect()
-
-        open_province_popularity = db_operate.query_produce_open_province_popularity()
-        open_province_popularity.to_csv(path+'../tmp/train/open_province_popularity.csv', index=False)
-        del open_province_popularity
-        gc.collect()
-
-        open_city = db_operate.query_produce_open_city()
-        open_city.to_csv(path+'../tmp/train/open_city.csv', index=False)
-        del open_city
-        gc.collect()
+        # open_model_detail = db_operate.query_produce_open_model_detail()
+        # open_model_detail = open_model_detail.rename(columns={'detail_model_slug': 'model_detail_slug'})
+        # open_model_detail.to_csv(path+'../tmp/train/open_model_detail.csv', index=False)
+        # del open_model_detail
+        # gc.collect()
+        #
+        # open_category = db_operate.query_produce_open_category()
+        # open_category.to_csv(path+'../tmp/train/open_category.csv', index=False)
+        # del open_category
+        # gc.collect()
+        #
+        # open_province_popularity = db_operate.query_produce_open_province_popularity()
+        # open_province_popularity.to_csv(path+'../tmp/train/open_province_popularity.csv', index=False)
+        # del open_province_popularity
+        # gc.collect()
+        #
+        # open_city = db_operate.query_produce_open_city()
+        # open_city.to_csv(path+'../tmp/train/open_city.csv', index=False)
+        # del open_city
+        # gc.collect()
         #
         # open_city = db_operate.query_produce_open_4s_price_clear()
         # open_city.to_csv(path+'../tmp/train/open_4s_price_clear.csv', index=False)
