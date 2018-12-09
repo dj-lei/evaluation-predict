@@ -71,6 +71,21 @@ def find_hedge(df, hedge):
     return pd.Series([float('%.3f' % (h)), float('%.3f' % (df['price_bn'] * h))])
 
 
+def find_best_k_b(origin, k_b_param):
+    """
+    查找最佳kb参数
+    """
+    param = k_b_param.copy()
+    param['distance'] = np.NAN
+    for i in range(0, len(param)):
+        k, b = param.loc[i, ['k', 'b']].values
+        distance = sum([(k*used_years+b-rate)**2 for used_years, rate in zip(list(origin.used_years.values), list(origin.rate.values))])
+        param.loc[i, ['distance']] = distance
+    # 取距离最低kb
+    param = param.sort_values(by=['distance']).reset_index(drop=True)
+    return param.loc[0, ['k', 'b']].values
+
+
 def adjust_k(df):
     """
     调整k参数
@@ -85,6 +100,7 @@ class FeatureEngineering(object):
 
     def __init__(self):
         self.train = pd.read_csv(path + '../tmp/train/car_source_match.csv')
+        self.car_autohome_all = pd.read_csv(path + '../tmp/train/car_autohome_all.csv')
         self.province_city_map = pd.read_csv(path + 'predict/map/province_city_map.csv')
 
     ###########################
@@ -153,51 +169,72 @@ class FeatureEngineering(object):
         median_price.loc[(median_price['used_years'] < 0), 'used_years'] = 0
         median_price['rate'] = median_price['median_price'] / median_price['price_bn']
 
-        # 拟合车系年份线性k参数
-        brand_area_year = median_price.loc[:, ['model_slug', 'model_name', 'used_years']].drop_duplicates(['model_slug', 'model_name', 'used_years']).reset_index(drop=True)
-
-        count = 0
-        k_param = pd.DataFrame([], columns=['model_slug', 'model_name', 'used_years', 'k'])
-        for model_slug, model_name, used_years in brand_area_year.loc[:, ['model_slug', 'model_name', 'used_years']].values:
-            temp = median_price.loc[(median_price['model_slug'] == model_slug) & (median_price['used_years'] == used_years), :].reset_index(drop=True)
-            # param = [-1, 0]
-            # var = leastsq(dist, param, args=(np.array(list(temp.price_bn.values)), np.array(list(temp.rate.values))))
-            # k, b = var[0]
-            k = median(list(temp.rate.values))
-            k_param.loc[count, ['model_slug', 'model_name', 'used_years', 'k']] = [model_slug, model_name, used_years, k]
-            count = count + 1
-
         # 生成标准车系拟合曲线
-        model = k_param.groupby(['model_name'])['used_years'].count().reset_index().sort_values(by=['used_years'])
-        model = model.loc[(model['used_years'] >= 5), :].reset_index(drop=True)
-        models = k_param.loc[(k_param['model_name'].isin(list(set(model.model_name.values)))), :].reset_index(drop=True)
+        model = median_price.groupby(['model_slug'])['used_years'].count().reset_index().sort_values(by=['used_years'])
+        have_data_model = model.loc[(model['used_years'] >= 5), :].reset_index(drop=True)
+        models = median_price.loc[(median_price['model_slug'].isin(list(set(have_data_model.model_slug.values)))), :].reset_index(drop=True)
 
         count = 0
-        k_b_param = pd.DataFrame([], columns=['model_name', 'k', 'b'])
-        for model_name in list(set(models.model_name.values)):
-            temp = models.loc[(models['model_name'] == model_name), :].reset_index(drop=True)
+        k_b_param = pd.DataFrame([], columns=['model_slug', 'k', 'b'])
+        for model_slug in list(set(models.model_slug.values)):
+            temp = models.loc[(models['model_slug'] == model_slug), :].reset_index(drop=True)
             param = [-1, 0]
-            var = leastsq(dist, param, args=(np.array(list(temp.used_years.values)), np.array(list(temp.k.values))))
+            var = leastsq(dist, param, args=(np.array(list(temp.used_years.values)), np.array(list(temp.rate.values))))
             k, b = var[0]
-            k_b_param.loc[count, ['model_name', 'k', 'b']] = [model_name, k, b]
+            k_b_param.loc[count, ['model_slug', 'k', 'b']] = [model_slug, k, b]
             count = count + 1
         k_b_param = k_b_param.sort_values(by=['b']).reset_index(drop=True)
+        k_b_param['model_slug'] = k_b_param['model_slug'].astype(int)
+        k_b_param['step'] = 0
+
+        # 缺失车系阶段1,查找已有车系接近kb
+        lack_data_model = model.loc[(model['used_years'] < 5), :].reset_index(drop=True)
+        models = median_price.loc[(median_price['model_slug'].isin(list(set(lack_data_model.model_slug.values)))), :].reset_index(drop=True)
+
+        count = 0
+        step1 = pd.DataFrame([], columns=['model_slug', 'k', 'b'])
+        for model_slug in list(set(models.model_slug.values)):
+            temp = models.loc[(models['model_slug'] == model_slug), :].reset_index(drop=True)
+            k, b = find_best_k_b(temp, k_b_param)
+            step1.loc[count, ['model_slug', 'k', 'b']] = [model_slug, k, b]
+            count = count + 1
+        step1['model_slug'] = step1['model_slug'].astype(int)
+        step1['step'] = 1
+        k_b_param = k_b_param.append(step1, sort=False).reset_index(drop=True)
+        k_b_param = k_b_param.merge(self.car_autohome_all.loc[:, ['brand_slug', 'model_slug']].drop_duplicates(['model_slug']), how='left', on=['model_slug'])
+
+        # 缺失车系阶段2,查找已有品牌接近kb
+        lack_models = self.car_autohome_all.loc[~(self.car_autohome_all['model_slug'].isin(list(set(k_b_param.model_slug.values)))), ['brand_slug', 'model_slug']].drop_duplicates(['model_slug']).reset_index(drop=True)
+        count = 0
+        step2 = pd.DataFrame([], columns=['brand_slug', 'model_slug', 'k', 'b'])
+        for i in range(0, len(lack_models)):
+            brand_slug, model_slug = lack_models.loc[i, ['brand_slug', 'model_slug']].values
+            temp = k_b_param.loc[(k_b_param['brand_slug'] == brand_slug), :].sort_values(by=['b']).reset_index(drop=True)
+            if len(temp) == 0:
+                continue
+            k, b = temp.loc[len(temp) % 2 + int(len(temp)/2) - 1, ['k', 'b']].values
+            step2.loc[count, ['brand_slug', 'model_slug', 'k', 'b']] = [brand_slug, model_slug, k, b]
+            count = count + 1
+        step2['model_slug'] = step2['model_slug'].astype(int)
+        step2['step'] = 2
+        k_b_param = k_b_param.append(step2, sort=False).reset_index(drop=True)
+
+        # 缺失品牌车系阶段3,临时
+        lack_models = self.car_autohome_all.loc[~(self.car_autohome_all['model_slug'].isin(list(set(k_b_param.model_slug.values)))), ['brand_slug', 'model_slug']].drop_duplicates(['model_slug']).reset_index(drop=True)
+        count = 0
+        step3 = pd.DataFrame([], columns=['brand_slug', 'model_slug', 'k', 'b'])
+        for i in range(0, len(lack_models)):
+            brand_slug, model_slug = lack_models.loc[i, ['brand_slug', 'model_slug']].values
+            k, b = k_b_param.loc[len(k_b_param) % 2 + int(len(k_b_param) / 2) - 1, ['k', 'b']].values
+            step3.loc[count, ['brand_slug', 'model_slug', 'k', 'b']] = [brand_slug, model_slug, k, b]
+            count = count + 1
+        step3['model_slug'] = step3['model_slug'].astype(int)
+        step3['step'] = 3
+        k_b_param = k_b_param.append(step3, sort=False).reset_index(drop=True)
+
+        k_b_param = k_b_param.merge(self.car_autohome_all.loc[:, ['brand_name', 'model_slug', 'model_name', 'body', 'energy']].drop_duplicates(['model_slug']), how='left', on=['model_slug'])
         k_b_param.to_csv(path + '../tmp/train/line_k_param.csv', index=False)
 
-        # # 计算牛顿k参数
-        # count = 0
-        # newton_k = pd.DataFrame([], columns=['brand_area', 'c', 'k'])
-        # for brand_area in list(set(k_param.brand_area.values)):
-        #     temp = k_param.loc[(k_param['brand_area'] == brand_area), :].reset_index(drop=True)
-        #     median_b = temp.loc[(temp['used_years'] == 0), 'k'].values
-        #     if len(median_b) == 0:
-        #         b = median(k_param.loc[(k_param['used_years'] == 0), 'k'].values)
-        #     else:
-        #         b = median_b[0]
-        #     k = cal_newton_min_param(list(k_param.used_years.values), list(k_param.k.values), b)
-        #     newton_k.loc[count, ['brand_area', 'c', 'k']] = [brand_area, b, k]
-        #     count = count + 1
-        #
         # # 生成车系保值率
         # hedge = pd.DataFrame([], columns=['brand_area', 'used_years', 'hedge'])
         # for brand_area in list(set(newton_k.brand_area.values)):
@@ -373,8 +410,8 @@ class FeatureEngineering(object):
         """
         执行
         """
-        self.handle_data_quality()
-        self.handle_data_preprocess()
+        # self.handle_data_quality()
+        # self.handle_data_preprocess()
         self.generate_model_global_mean()
         # self.generate_price_bn_div_map()
         # self.generate_province_div_map()
