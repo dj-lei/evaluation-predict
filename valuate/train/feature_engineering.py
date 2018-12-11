@@ -418,14 +418,56 @@ class FeatureEngineering(object):
         k = pd.DataFrame([[k, b]], columns=['k', 'b'])
         k.to_csv(path + '../tmp/train/div_mile_k_param.csv', index=False)
 
+    def generate_global_model_mean_map(self):
+        """
+        生成所有车系全局保值率
+        """
+        def cal_low_config_car_hedge(df):
+            """
+            计算低配车保值率
+            """
+            return int(df['price_bn'] * (df['k'] * df['used_years'] + df['b']) * 10000)
+
+        model_k_param = pd.read_csv(path + '../tmp/train/model_k_param.csv')
+        div_price_bn_k_param = pd.read_csv('../tmp/train/div_price_bn_k_param.csv')
+        model_k_param = model_k_param.loc[(model_k_param['price_bn'].notnull()), :]
+
+        car_autohome_all = self.car_autohome_all.copy()
+        car_autohome_all['used_years'] = datetime.datetime.now().year - car_autohome_all['online_year']
+        car_autohome_all.loc[(car_autohome_all['used_years'] < 0), 'used_years'] = 0
+        car_autohome_all = car_autohome_all.sort_values(by=['brand_slug', 'model_slug', 'online_year', 'price_bn']).reset_index(drop=True)
+        # 取低配数据
+        low_config_car = car_autohome_all.loc[car_autohome_all.groupby(['brand_slug', 'model_slug', 'online_year']).price_bn.idxmin(), :].reset_index(drop=True)
+        low_config_car = low_config_car.merge(model_k_param.loc[:, ['model_slug', 'k', 'b']], how='left', on=['model_slug'])
+        low_config_car['predict_price'] = low_config_car.apply(cal_low_config_car_hedge, axis=1)
+        car_autohome_all = car_autohome_all.merge(low_config_car.loc[:, ['detail_slug', 'predict_price']], how='left', on=['detail_slug'])
+
+        # 计算其余款型预测价格
+        model_online_year = car_autohome_all.loc[:, ['model_slug', 'online_year']].drop_duplicates(['model_slug', 'online_year']).reset_index(drop=True)
+
+        result = pd.DataFrame()
+        for model_slug, online_year in model_online_year.loc[:, ['model_slug', 'online_year']].values:
+            temp = car_autohome_all.loc[(car_autohome_all['model_slug'] == model_slug) & (car_autohome_all['online_year'] == online_year), :].reset_index(drop=True)
+            if len(temp) <= 1:
+                result = result.append(temp, sort=False).reset_index(drop=True)
+            init_predict_price = temp.loc[0, 'predict_price']
+            init_price_bn = temp.loc[0, 'price_bn']
+            k = div_price_bn_k_param.loc[(div_price_bn_k_param['used_years'] == temp.loc[0, 'used_years']), ['k']].values[0]
+            for i in range(1, len(temp)):
+                temp.loc[i, 'predict_price'] = init_predict_price + (temp.loc[i, 'price_bn'] - init_price_bn) * k
+            result = result.append(temp, sort=False).reset_index(drop=True)
+        result = result.sort_values(by=['brand_slug', 'model_slug', 'online_year', 'price_bn']).reset_index(drop=True)
+        result.to_csv(path + '../tmp/train/global_model_mean.csv', index=False)
+
     def execute(self):
         """
         执行
         """
-        self.handle_data_quality()
-        self.handle_data_preprocess()
-        self.generate_model_map()
-        self.generate_price_bn_div_map()
-        self.generate_province_div_map()
-        self.generate_warehouse_years_div_map()
-        self.generate_mile_div_map()
+        # self.handle_data_quality()
+        # self.handle_data_preprocess()
+        # self.generate_model_map()
+        # self.generate_price_bn_div_map()
+        # self.generate_province_div_map()
+        # self.generate_warehouse_years_div_map()
+        # self.generate_mile_div_map()
+        self.generate_global_model_mean_map()
