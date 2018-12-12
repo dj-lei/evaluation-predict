@@ -171,7 +171,7 @@ class FeatureEngineering(object):
         median_price['used_years'] = datetime.datetime.now().year - median_price['online_year']
         median_price.loc[(median_price['used_years'] < 0), 'used_years'] = 0
         median_price['rate'] = median_price['median_price'] / median_price['price_bn']
-
+        median_price.to_csv(path + '../tmp/train/model_data.csv', index=False)
         # 生成标准车系拟合曲线
         model = median_price.groupby(['model_slug'])['used_years'].count().reset_index().sort_values(by=['used_years'])
         have_data_model = model.loc[(model['used_years'] >= 5), :].reset_index(drop=True)
@@ -237,42 +237,6 @@ class FeatureEngineering(object):
 
         k_b_param = k_b_param.merge(self.car_autohome_all.loc[:, ['brand_name', 'model_slug', 'model_name', 'body', 'energy']].drop_duplicates(['model_slug']), how='left', on=['model_slug'])
         k_b_param.to_csv(path + '../tmp/train/model_k_param.csv', index=False)
-
-        # # 生成车系保值率
-        # hedge = pd.DataFrame([], columns=['brand_area', 'used_years', 'hedge'])
-        # for brand_area in list(set(newton_k.brand_area.values)):
-        #     c, k = newton_k.loc[(newton_k['brand_area'] == brand_area), ['c', 'k']].values[0]
-        #     temp = pd.DataFrame([[brand_area, i, c * math.e ** (k * i)] for i in range(0, 21)],columns=['brand_area', 'used_years', 'hedge'])
-        #     hedge = hedge.append(temp).reset_index(drop=True)
-        # hedge = hedge.merge(k_param, how='left', on=['brand_area', 'used_years'])
-        # hedge['k'] = hedge['k'].fillna(-1)
-        # hedge['hedge'] = hedge.apply(adjust_k, axis=1)
-        # hedge = hedge.drop(['k'], axis=1)
-        # hedge.to_csv(path + '../tmp/train/hedge.csv', index=False)
-
-        # # 生成全局均值
-        # self.model_global_mean = self.model_global_mean.merge(median_price.loc[:, ['model_detail_slug', 'median_price']], how='left', on=['model_detail_slug'])
-        # self.model_global_mean = self.model_global_mean.sort_values(by=['brand_name', 'global_name', 'online_year', 'price_bn']).reset_index(drop=True)
-        # self.model_global_mean['used_years'] = datetime.datetime.now().year - self.model_global_mean['online_year']
-        # self.model_global_mean.loc[(self.model_global_mean['used_years'] < 0), 'used_years'] = 0
-        # self.model_global_mean['hedge'] = np.NAN
-        # self.model_global_mean['predict_price'] = np.NAN
-        # self.model_global_mean[['hedge', 'predict_price']] = self.model_global_mean.apply(find_hedge, args=(hedge,), axis=1)
-        # self.model_global_mean = self.model_global_mean.sort_values(by=['brand_slug', 'global_slug', 'online_year', 'price_bn'],ascending=[True, True, False, True]).reset_index(drop=True)
-        # final = pd.DataFrame()
-        # for global_slug in list(set(self.model_global_mean.global_slug.values)):
-        #     temp = self.model_global_mean.loc[(self.model_global_mean['global_slug'] == global_slug), :].reset_index(drop=True)
-        #     if len(temp.loc[(temp['median_price'].notnull()), :]) == 0:
-        #         temp['final_price'] = temp['predict_price']
-        #         final = final.append(temp, sort=False).reset_index(drop=True)
-        #     else:
-        #         m_price = temp.loc[(temp['median_price'].notnull()), 'median_price'].values[0]
-        #         p_price = temp.loc[(temp['median_price'].notnull()), 'predict_price'].values[0]
-        #         rate = m_price / p_price
-        #         temp['final_price'] = temp['predict_price'] * rate
-        #         final = final.append(temp, sort=False).reset_index(drop=True)
-        # final = final.sort_values(by=['brand_slug', 'global_slug', 'online_year', 'price_bn']).reset_index(drop=True)
-        # final.to_csv(path + '../tmp/train/model_global_mean.csv', index=False)
 
     def generate_price_bn_div_map(self):
         """
@@ -412,6 +376,8 @@ class FeatureEngineering(object):
         self.train = self.train.merge(median_price, how='left', on=['detail_slug', 'province', 'online_year'])
         self.train['mile_per_month'] = self.train.apply(cal_use_mile_per_months, axis=1)
         self.train['rate'] = (self.train['price'] - self.train['median_price']) / self.train['median_price']
+        self.train = self.train.loc[(self.train['mile_per_month'] < 1), :].reset_index(drop=True)
+        self.train.to_csv(path + '../tmp/train/div_mile_data.csv', index=False)
         param = [0, 0]
         var = leastsq(dist, param, args=(np.array(list(self.train.mile_per_month.values)), np.array(list(self.train.rate.values))))
         k, b = var[0]
@@ -429,8 +395,7 @@ class FeatureEngineering(object):
             return int(df['price_bn'] * (df['k'] * df['used_years'] + df['b']) * 10000)
 
         model_k_param = pd.read_csv(path + '../tmp/train/model_k_param.csv')
-        div_price_bn_k_param = pd.read_csv('../tmp/train/div_price_bn_k_param.csv')
-        model_k_param = model_k_param.loc[(model_k_param['price_bn'].notnull()), :]
+        div_price_bn_k_param = pd.read_csv(path + '../tmp/train/div_price_bn_k_param.csv')
 
         car_autohome_all = self.car_autohome_all.copy()
         car_autohome_all['used_years'] = datetime.datetime.now().year - car_autohome_all['online_year']
@@ -454,7 +419,7 @@ class FeatureEngineering(object):
             init_price_bn = temp.loc[0, 'price_bn']
             k = div_price_bn_k_param.loc[(div_price_bn_k_param['used_years'] == temp.loc[0, 'used_years']), ['k']].values[0]
             for i in range(1, len(temp)):
-                temp.loc[i, 'predict_price'] = init_predict_price + (temp.loc[i, 'price_bn'] - init_price_bn) * k
+                temp.loc[i, 'predict_price'] = int(init_predict_price + (temp.loc[i, 'price_bn'] - init_price_bn) * 10000 * k)
             result = result.append(temp, sort=False).reset_index(drop=True)
         result = result.sort_values(by=['brand_slug', 'model_slug', 'online_year', 'price_bn']).reset_index(drop=True)
         result.to_csv(path + '../tmp/train/global_model_mean.csv', index=False)
