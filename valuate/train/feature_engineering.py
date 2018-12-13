@@ -174,7 +174,7 @@ class FeatureEngineering(object):
         median_price.to_csv(path + '../tmp/train/model_data.csv', index=False)
         # 生成标准车系拟合曲线
         model = median_price.groupby(['model_slug'])['used_years'].count().reset_index().sort_values(by=['used_years'])
-        have_data_model = model.loc[(model['used_years'] >= 2), :].reset_index(drop=True)
+        have_data_model = model.loc[(model['used_years'] >= 3), :].reset_index(drop=True)
         models = median_price.loc[(median_price['model_slug'].isin(list(set(have_data_model.model_slug.values)))), :].reset_index(drop=True)
 
         count = 0
@@ -191,7 +191,7 @@ class FeatureEngineering(object):
         k_b_param['step'] = 0
 
         # 缺失车系阶段1,查找已有车系接近kb
-        lack_data_model = model.loc[(model['used_years'] < 2), :].reset_index(drop=True)
+        lack_data_model = model.loc[(model['used_years'] < 3), :].reset_index(drop=True)
         models = median_price.loc[(median_price['model_slug'].isin(list(set(lack_data_model.model_slug.values)))), :].reset_index(drop=True)
 
         count = 0
@@ -425,6 +425,25 @@ class FeatureEngineering(object):
         result = result.sort_values(by=['brand_slug', 'model_slug', 'online_year', 'price_bn']).reset_index(drop=True)
         result.to_csv(path + '../tmp/train/global_model_mean.csv', index=False)
 
+    def generate_wait_manual_model(self):
+        """
+        生成待人工装填车系
+        """
+        model_k_param = pd.read_csv(path + '../tmp/train/model_k_param.csv')
+        part1 = model_k_param.loc[(model_k_param['k'] > 0) | (model_k_param['step'] == 3), :]
+        part1 = list(set(part1.model_slug.values))
+        global_model_mean = pd.read_csv(path + '../tmp/train/global_model_mean.csv')
+        part2 = global_model_mean.loc[(global_model_mean['predict_price'] < 0), :]
+        part2 = list(set(part2.model_slug.values))
+        part1.extend(part2)
+        models = list(set(part1))
+        print('待人工装填车系数量:', len(models))
+        result = global_model_mean.loc[(global_model_mean['model_slug'].isin(models)), :].reset_index(drop=True)
+        # 取低配数据
+        result = result.loc[result.groupby(['brand_slug', 'model_slug', 'online_year']).price_bn.idxmin(), :].reset_index(drop=True)
+        print('待人工装填款型数量:', len(result))
+        result.to_csv(path + '../tmp/train/wait_manual_model.csv', index=False)
+
     def copy_files_to_api_project(self):
         """
         拷贝文件到evaluation-api项目
@@ -455,5 +474,8 @@ class FeatureEngineering(object):
         # self.generate_province_div_map()
         # self.generate_warehouse_years_div_map()
         # self.generate_mile_div_map()
-        self.generate_global_model_mean_map()
-        self.copy_files_to_api_project()
+        # self.generate_global_model_mean_map()
+
+        self.generate_wait_manual_model()
+
+        # self.copy_files_to_api_project()
