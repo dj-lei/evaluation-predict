@@ -174,7 +174,7 @@ class FeatureEngineering(object):
         median_price.to_csv(path + '../tmp/train/model_data.csv', index=False)
         # 生成标准车系拟合曲线
         model = median_price.groupby(['model_slug'])['used_years'].count().reset_index().sort_values(by=['used_years'])
-        have_data_model = model.loc[(model['used_years'] >= 5), :].reset_index(drop=True)
+        have_data_model = model.loc[(model['used_years'] >= 2), :].reset_index(drop=True)
         models = median_price.loc[(median_price['model_slug'].isin(list(set(have_data_model.model_slug.values)))), :].reset_index(drop=True)
 
         count = 0
@@ -191,7 +191,7 @@ class FeatureEngineering(object):
         k_b_param['step'] = 0
 
         # 缺失车系阶段1,查找已有车系接近kb
-        lack_data_model = model.loc[(model['used_years'] < 5), :].reset_index(drop=True)
+        lack_data_model = model.loc[(model['used_years'] < 2), :].reset_index(drop=True)
         models = median_price.loc[(median_price['model_slug'].isin(list(set(lack_data_model.model_slug.values)))), :].reset_index(drop=True)
 
         count = 0
@@ -415,6 +415,7 @@ class FeatureEngineering(object):
             temp = car_autohome_all.loc[(car_autohome_all['model_slug'] == model_slug) & (car_autohome_all['online_year'] == online_year), :].reset_index(drop=True)
             if len(temp) <= 1:
                 result = result.append(temp, sort=False).reset_index(drop=True)
+                continue
             init_predict_price = temp.loc[0, 'predict_price']
             init_price_bn = temp.loc[0, 'price_bn']
             k = div_price_bn_k_param.loc[(div_price_bn_k_param['used_years'] == temp.loc[0, 'used_years']), ['k']].values[0]
@@ -423,6 +424,25 @@ class FeatureEngineering(object):
             result = result.append(temp, sort=False).reset_index(drop=True)
         result = result.sort_values(by=['brand_slug', 'model_slug', 'online_year', 'price_bn']).reset_index(drop=True)
         result.to_csv(path + '../tmp/train/global_model_mean.csv', index=False)
+
+    def copy_files_to_api_project(self):
+        """
+        拷贝文件到evaluation-api项目
+        """
+        evaluation_api_path = '/home/ml/ProgramProject/evaluation-api/tmp/'
+
+        model_k_param = pd.read_csv(path + '../tmp/train/model_k_param.csv')
+        model_k_param.to_csv(evaluation_api_path + 'model_k_param.csv', index=False)
+        div_price_bn_k_param = pd.read_csv(path + '../tmp/train/div_price_bn_k_param.csv')
+        div_price_bn_k_param.to_csv(evaluation_api_path + 'div_price_bn_k_param.csv', index=False)
+        div_province_k_param = pd.read_csv(path + '../tmp/train/div_province_k_param.csv')
+        div_province_k_param.to_csv(evaluation_api_path + 'div_province_k_param.csv', index=False)
+        div_warehouse_k_param = pd.read_csv(path + '../tmp/train/div_warehouse_k_param.csv')
+        div_warehouse_k_param.to_csv(evaluation_api_path + 'div_warehouse_k_param.csv', index=False)
+        div_mile_k_param = pd.read_csv(path + '../tmp/train/div_mile_k_param.csv')
+        div_mile_k_param.to_csv(evaluation_api_path + 'div_mile_k_param.csv', index=False)
+        global_model_mean = pd.read_csv(path + '../tmp/train/global_model_mean.csv')
+        global_model_mean.to_csv(evaluation_api_path + 'global_model_mean.csv', index=False)
 
     def execute(self):
         """
@@ -436,3 +456,4 @@ class FeatureEngineering(object):
         # self.generate_warehouse_years_div_map()
         # self.generate_mile_div_map()
         self.generate_global_model_mean_map()
+        self.copy_files_to_api_project()
