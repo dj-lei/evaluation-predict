@@ -104,6 +104,7 @@ class FeatureEngineering(object):
     def __init__(self):
         self.train = pd.read_csv(path + '../tmp/train/car_source_match.csv')
         self.car_autohome_all = pd.read_csv(path + '../tmp/train/car_autohome_all.csv')
+        self.car_autohome_all = self.car_autohome_all.drop(['volume', 'control'], axis=1)
         self.province_city_map = pd.read_csv(path + 'predict/map/province_city_map.csv')
 
     ###########################
@@ -237,79 +238,42 @@ class FeatureEngineering(object):
             part1 = part1.append(car_autohome_temp, sort=False).reset_index(drop=True)
         part1.to_csv(path + '../tmp/train/global_model_mean_part1.csv', index=False)
 
-        # 需要人工评估的低配车
-        part2 = car_autohome_all.merge(part1.loc[:, ['detail_slug', 'median_price']], how='left', on=['detail_slug'])
-        part2 = part2.loc[(part2['median_price'].isnull()), :].reset_index(drop=True)
-        # 取低配数据
-        part2 = part2.loc[part2.groupby(['brand_slug', 'model_slug', 'online_year']).price_bn.idxmin(), :].reset_index(drop=True)
-        part2.to_csv(path + '../tmp/train/global_model_mean_part2.csv', index=False)
+        content = input("是否重新生成人工评估文件:")
+        if content == 'y':
+            # 需要人工评估的低配车
+            part2 = car_autohome_all.merge(part1.loc[:, ['detail_slug', 'median_price']], how='left', on=['detail_slug'])
+            part2 = part2.loc[(part2['median_price'].isnull()), :].reset_index(drop=True)
+            # 取低配数据
+            part2 = part2.loc[part2.groupby(['brand_slug', 'model_slug', 'online_year']).price_bn.idxmin(), :].reset_index(drop=True)
+            part2.to_csv(path + '../tmp/train/global_model_mean_part2.csv', index=False)
 
+    def generate_manual_model_map(self):
+        """
+        组合人工评估数据
+        """
+        part1 = pd.read_csv(path + '../tmp/train/global_model_mean_part1.csv')
+        low_config_car = pd.read_csv(path + '../tmp/train/global_model_mean_part2.csv')
+        div_price_bn_k_param = pd.read_csv(path + '../tmp/train/div_price_bn_k_param.csv')
 
-        # # 生成标准车系拟合曲线
-        # model = median_price.groupby(['model_slug'])['used_years'].count().reset_index().sort_values(by=['used_years'])
-        # have_data_model = model.loc[(model['used_years'] >= 3), :].reset_index(drop=True)
-        # models = median_price.loc[(median_price['model_slug'].isin(list(set(have_data_model.model_slug.values)))), :].reset_index(drop=True)
-        #
-        # count = 0
-        # k_b_param = pd.DataFrame([], columns=['model_slug', 'k', 'b'])
-        # for model_slug in list(set(models.model_slug.values)):
-        #     temp = models.loc[(models['model_slug'] == model_slug), :].reset_index(drop=True)
-        #     param = [-1, 0]
-        #     var = leastsq(dist, param, args=(np.array(list(temp.used_years.values)), np.array(list(temp.rate.values))))
-        #     k, b = var[0]
-        #     k_b_param.loc[count, ['model_slug', 'k', 'b']] = [model_slug, k, b]
-        #     count = count + 1
-        # k_b_param = k_b_param.sort_values(by=['b']).reset_index(drop=True)
-        # k_b_param['model_slug'] = k_b_param['model_slug'].astype(int)
-        # k_b_param['step'] = 0
-        #
-        # # 缺失车系阶段1,查找已有车系接近kb
-        # lack_data_model = model.loc[(model['used_years'] < 3), :].reset_index(drop=True)
-        # models = median_price.loc[(median_price['model_slug'].isin(list(set(lack_data_model.model_slug.values)))), :].reset_index(drop=True)
-        #
-        # count = 0
-        # step1 = pd.DataFrame([], columns=['model_slug', 'k', 'b'])
-        # for model_slug in list(set(models.model_slug.values)):
-        #     temp = models.loc[(models['model_slug'] == model_slug), :].reset_index(drop=True)
-        #     k, b = find_best_k_b(temp, k_b_param)
-        #     step1.loc[count, ['model_slug', 'k', 'b']] = [model_slug, k, b]
-        #     count = count + 1
-        # step1['model_slug'] = step1['model_slug'].astype(int)
-        # step1['step'] = 1
-        # k_b_param = k_b_param.append(step1, sort=False).reset_index(drop=True)
-        # k_b_param = k_b_param.merge(self.car_autohome_all.loc[:, ['brand_slug', 'model_slug']].drop_duplicates(['model_slug']), how='left', on=['model_slug'])
-        #
-        # # 缺失车系阶段2,查找已有品牌接近kb
-        # lack_models = self.car_autohome_all.loc[~(self.car_autohome_all['model_slug'].isin(list(set(k_b_param.model_slug.values)))), ['brand_slug', 'model_slug']].drop_duplicates(['model_slug']).reset_index(drop=True)
-        # count = 0
-        # step2 = pd.DataFrame([], columns=['brand_slug', 'model_slug', 'k', 'b'])
-        # for i in range(0, len(lack_models)):
-        #     brand_slug, model_slug = lack_models.loc[i, ['brand_slug', 'model_slug']].values
-        #     temp = k_b_param.loc[(k_b_param['brand_slug'] == brand_slug), :].sort_values(by=['b']).reset_index(drop=True)
-        #     if len(temp) == 0:
-        #         continue
-        #     k, b = temp.loc[len(temp) % 2 + int(len(temp)/2) - 1, ['k', 'b']].values
-        #     step2.loc[count, ['brand_slug', 'model_slug', 'k', 'b']] = [brand_slug, model_slug, k, b]
-        #     count = count + 1
-        # step2['model_slug'] = step2['model_slug'].astype(int)
-        # step2['step'] = 2
-        # k_b_param = k_b_param.append(step2, sort=False).reset_index(drop=True)
-        #
-        # # 缺失品牌车系阶段3,临时
-        # lack_models = self.car_autohome_all.loc[~(self.car_autohome_all['model_slug'].isin(list(set(k_b_param.model_slug.values)))), ['brand_slug', 'model_slug']].drop_duplicates(['model_slug']).reset_index(drop=True)
-        # count = 0
-        # step3 = pd.DataFrame([], columns=['brand_slug', 'model_slug', 'k', 'b'])
-        # for i in range(0, len(lack_models)):
-        #     brand_slug, model_slug = lack_models.loc[i, ['brand_slug', 'model_slug']].values
-        #     k, b = k_b_param.loc[len(k_b_param) % 2 + int(len(k_b_param) / 2) - 1, ['k', 'b']].values
-        #     step3.loc[count, ['brand_slug', 'model_slug', 'k', 'b']] = [brand_slug, model_slug, k, b]
-        #     count = count + 1
-        # step3['model_slug'] = step3['model_slug'].astype(int)
-        # step3['step'] = 3
-        # k_b_param = k_b_param.append(step3, sort=False).reset_index(drop=True)
-        #
-        # k_b_param = k_b_param.merge(self.car_autohome_all.loc[:, ['brand_name', 'model_slug', 'model_name', 'body', 'energy']].drop_duplicates(['model_slug']), how='left', on=['model_slug'])
-        # k_b_param.to_csv(path + '../tmp/train/model_k_param.csv', index=False)
+        car_autohome_all = self.car_autohome_all.copy()
+        car_autohome_all = car_autohome_all.sort_values(by=['brand_slug', 'model_slug', 'online_year', 'price_bn']).reset_index(drop=True)
+        car_autohome_all['used_years'] = datetime.datetime.now().year - car_autohome_all['online_year']
+        car_autohome_all.loc[(car_autohome_all['used_years'] < 0), 'used_years'] = 0
+
+        # 调整指导价差,确保同条件下高配比低配价格高
+        part2 = pd.DataFrame()
+        for model_slug, online_year in low_config_car.loc[:, ['model_slug', 'online_year']].values:
+            car_autohome_temp = car_autohome_all.loc[(car_autohome_all['model_slug'] == model_slug)&(car_autohome_all['online_year'] == online_year), :].reset_index(drop=True)
+            car_autohome_temp = car_autohome_temp.merge(low_config_car.loc[:, ['detail_slug', 'median_price']], how='left', on=['detail_slug'])
+            low_config_price, price_bn = car_autohome_temp.loc[(car_autohome_temp['median_price'].notnull()), ['median_price', 'price_bn']].values[0]
+            used_years = car_autohome_temp.loc[0, 'used_years']
+            k = div_price_bn_k_param.loc[(div_price_bn_k_param['used_years'] == used_years), ['k']].values[0]
+            for i in range(0, len(car_autohome_temp)):
+                car_autohome_temp.loc[i, 'median_price'] = float('%.2f' % ((car_autohome_temp.loc[i, 'price_bn'] - price_bn) * k + low_config_price))
+            part2 = part2.append(car_autohome_temp, sort=False).reset_index(drop=True)
+
+        global_model_mean = part1.append(part2, sort=False)
+        global_model_mean.to_csv(path + '../tmp/train/global_model_mean.csv', index=False)
 
     def generate_province_div_map(self):
         """
@@ -409,79 +373,12 @@ class FeatureEngineering(object):
         k = pd.DataFrame([[k, b]], columns=['k', 'b'])
         k.to_csv(path + '../tmp/train/div_mile_k_param.csv', index=False)
 
-    def generate_global_model_mean_map(self):
-        """
-        生成所有车系全局保值率
-        """
-        def cal_low_config_car_hedge(df):
-            """
-            计算低配车保值率
-            """
-            return int(df['price_bn'] * (df['k'] * df['used_years'] + df['b']) * 10000)
-
-        model_k_param = pd.read_csv(path + '../tmp/train/model_k_param.csv')
-        div_price_bn_k_param = pd.read_csv(path + '../tmp/train/div_price_bn_k_param.csv')
-
-        car_autohome_all = self.car_autohome_all.copy()
-        car_autohome_all['used_years'] = datetime.datetime.now().year - car_autohome_all['online_year']
-        car_autohome_all.loc[(car_autohome_all['used_years'] < 0), 'used_years'] = 0
-        car_autohome_all = car_autohome_all.sort_values(by=['brand_slug', 'model_slug', 'online_year', 'price_bn']).reset_index(drop=True)
-        # 取低配数据
-        low_config_car = car_autohome_all.loc[car_autohome_all.groupby(['brand_slug', 'model_slug', 'online_year']).price_bn.idxmin(), :].reset_index(drop=True)
-        low_config_car = low_config_car.merge(model_k_param.loc[:, ['model_slug', 'k', 'b']], how='left', on=['model_slug'])
-        low_config_car['predict_price'] = low_config_car.apply(cal_low_config_car_hedge, axis=1)
-        car_autohome_all = car_autohome_all.merge(low_config_car.loc[:, ['detail_slug', 'predict_price']], how='left', on=['detail_slug'])
-
-        # 计算其余款型预测价格
-        model_online_year = car_autohome_all.loc[:, ['model_slug', 'online_year']].drop_duplicates(['model_slug', 'online_year']).reset_index(drop=True)
-
-        result = pd.DataFrame()
-        for model_slug, online_year in model_online_year.loc[:, ['model_slug', 'online_year']].values:
-            temp = car_autohome_all.loc[(car_autohome_all['model_slug'] == model_slug) & (car_autohome_all['online_year'] == online_year), :].reset_index(drop=True)
-            if len(temp) <= 1:
-                result = result.append(temp, sort=False).reset_index(drop=True)
-                continue
-            init_predict_price = temp.loc[0, 'predict_price']
-            init_price_bn = temp.loc[0, 'price_bn']
-            k = div_price_bn_k_param.loc[(div_price_bn_k_param['used_years'] == temp.loc[0, 'used_years']), ['k']].values[0]
-            for i in range(1, len(temp)):
-                temp.loc[i, 'predict_price'] = int(init_predict_price + (temp.loc[i, 'price_bn'] - init_price_bn) * 10000 * k)
-            result = result.append(temp, sort=False).reset_index(drop=True)
-        result = result.sort_values(by=['brand_slug', 'model_slug', 'online_year', 'price_bn']).reset_index(drop=True)
-        result.to_csv(path + '../tmp/train/global_model_mean.csv', index=False)
-
-    def generate_wait_manual_model(self):
-        """
-        生成待人工装填车系
-        """
-        content = input("是否重新生成人工评估文件:")
-        if content == 'y':
-            model_k_param = pd.read_csv(path + '../tmp/train/model_k_param.csv')
-            part1 = model_k_param.loc[(model_k_param['k'] > 0) | (model_k_param['step'] == 3), :]
-            part1 = list(set(part1.model_name.values))
-            global_model_mean = pd.read_csv(path + '../tmp/train/global_model_mean.csv')
-            part2 = global_model_mean.loc[(global_model_mean['predict_price'] < 0), :]
-            part2 = list(set(part2.model_name.values))
-            part1.extend(part2)
-            part1.extend(['知豆D2', '知豆D3'])
-            models = list(set(part1))
-            print('待人工装填车系数量:', len(models))
-            result = global_model_mean.loc[(global_model_mean['model_name'].isin(models)), :].reset_index(drop=True)
-            # 取低配数据
-            result = result.loc[result.groupby(['brand_slug', 'model_slug', 'online_year']).price_bn.idxmin(), :].reset_index(drop=True)
-            result = result.merge(model_k_param.loc[:, ['model_slug', 'step']], how='left', on=['model_slug'])
-            print('待人工装填款型数量:', len(result))
-            result['manual_price'] = np.NAN
-            result.to_csv(path + '../tmp/train/wait_manual_model.csv', index=False)
-
     def copy_files_to_api_project(self):
         """
         拷贝文件到evaluation-api项目
         """
         evaluation_api_path = '/home/ml/ProgramProject/evaluation-api/tmp/'
 
-        model_k_param = pd.read_csv(path + '../tmp/train/model_k_param.csv')
-        model_k_param.to_csv(evaluation_api_path + 'model_k_param.csv', index=False)
         div_price_bn_k_param = pd.read_csv(path + '../tmp/train/div_price_bn_k_param.csv')
         div_price_bn_k_param.to_csv(evaluation_api_path + 'div_price_bn_k_param.csv', index=False)
         div_province_k_param = pd.read_csv(path + '../tmp/train/div_province_k_param.csv')
@@ -499,99 +396,12 @@ class FeatureEngineering(object):
         """
         # self.handle_data_quality()
         # self.handle_data_preprocess()
-        self.generate_model_map()
         # self.generate_price_bn_div_map()
+        # self.generate_model_map()
+        # self.generate_manual_model_map()
         # self.generate_province_div_map()
         # self.generate_warehouse_years_div_map()
         # self.generate_mile_div_map()
         # self.generate_global_model_mean_map()
 
-        # self.generate_wait_manual_model()
-
-        # self.copy_files_to_api_project()
-
-
-    # def generate_model_map(self):
-    #     """
-    #     生成全款型全国均值模型
-    #     """
-    #     self.train = pd.read_csv(path + '../tmp/train/train.csv')
-    #
-    #     # 上牌时间和上市时间相同
-    #     self.train = self.train.loc[(self.train['online_year'] == self.train['year']), :].reset_index(drop=True)
-    #
-    #     # 根据款型计算中位数
-    #     median_price = self.train.groupby(['brand_slug', 'brand_name', 'model_slug', 'model_name', 'detail_slug', 'online_year', 'price_bn'])['price'].median().reset_index().rename(columns={'price': 'median_price'})
-    #     median_price = median_price.sort_values(by=['brand_slug', 'model_slug', 'online_year', 'price_bn']).reset_index(drop=True)
-    #     # 取低配数据
-    #     median_price = median_price.loc[median_price.groupby(['brand_slug', 'model_slug', 'online_year']).price_bn.idxmin(), :]
-    #
-    #     median_price['used_years'] = datetime.datetime.now().year - median_price['online_year']
-    #     median_price.loc[(median_price['used_years'] < 0), 'used_years'] = 0
-    #     median_price['rate'] = median_price['median_price'] / median_price['price_bn']
-    #     median_price.to_csv(path + '../tmp/train/model_data.csv', index=False)
-    #     # 生成标准车系拟合曲线
-    #     model = median_price.groupby(['model_slug'])['used_years'].count().reset_index().sort_values(by=['used_years'])
-    #     have_data_model = model.loc[(model['used_years'] >= 3), :].reset_index(drop=True)
-    #     models = median_price.loc[(median_price['model_slug'].isin(list(set(have_data_model.model_slug.values)))), :].reset_index(drop=True)
-    #
-    #     count = 0
-    #     k_b_param = pd.DataFrame([], columns=['model_slug', 'k', 'b'])
-    #     for model_slug in list(set(models.model_slug.values)):
-    #         temp = models.loc[(models['model_slug'] == model_slug), :].reset_index(drop=True)
-    #         param = [-1, 0]
-    #         var = leastsq(dist, param, args=(np.array(list(temp.used_years.values)), np.array(list(temp.rate.values))))
-    #         k, b = var[0]
-    #         k_b_param.loc[count, ['model_slug', 'k', 'b']] = [model_slug, k, b]
-    #         count = count + 1
-    #     k_b_param = k_b_param.sort_values(by=['b']).reset_index(drop=True)
-    #     k_b_param['model_slug'] = k_b_param['model_slug'].astype(int)
-    #     k_b_param['step'] = 0
-    #
-    #     # 缺失车系阶段1,查找已有车系接近kb
-    #     lack_data_model = model.loc[(model['used_years'] < 3), :].reset_index(drop=True)
-    #     models = median_price.loc[(median_price['model_slug'].isin(list(set(lack_data_model.model_slug.values)))), :].reset_index(drop=True)
-    #
-    #     count = 0
-    #     step1 = pd.DataFrame([], columns=['model_slug', 'k', 'b'])
-    #     for model_slug in list(set(models.model_slug.values)):
-    #         temp = models.loc[(models['model_slug'] == model_slug), :].reset_index(drop=True)
-    #         k, b = find_best_k_b(temp, k_b_param)
-    #         step1.loc[count, ['model_slug', 'k', 'b']] = [model_slug, k, b]
-    #         count = count + 1
-    #     step1['model_slug'] = step1['model_slug'].astype(int)
-    #     step1['step'] = 1
-    #     k_b_param = k_b_param.append(step1, sort=False).reset_index(drop=True)
-    #     k_b_param = k_b_param.merge(self.car_autohome_all.loc[:, ['brand_slug', 'model_slug']].drop_duplicates(['model_slug']), how='left', on=['model_slug'])
-    #
-    #     # 缺失车系阶段2,查找已有品牌接近kb
-    #     lack_models = self.car_autohome_all.loc[~(self.car_autohome_all['model_slug'].isin(list(set(k_b_param.model_slug.values)))), ['brand_slug', 'model_slug']].drop_duplicates(['model_slug']).reset_index(drop=True)
-    #     count = 0
-    #     step2 = pd.DataFrame([], columns=['brand_slug', 'model_slug', 'k', 'b'])
-    #     for i in range(0, len(lack_models)):
-    #         brand_slug, model_slug = lack_models.loc[i, ['brand_slug', 'model_slug']].values
-    #         temp = k_b_param.loc[(k_b_param['brand_slug'] == brand_slug), :].sort_values(by=['b']).reset_index(drop=True)
-    #         if len(temp) == 0:
-    #             continue
-    #         k, b = temp.loc[len(temp) % 2 + int(len(temp)/2) - 1, ['k', 'b']].values
-    #         step2.loc[count, ['brand_slug', 'model_slug', 'k', 'b']] = [brand_slug, model_slug, k, b]
-    #         count = count + 1
-    #     step2['model_slug'] = step2['model_slug'].astype(int)
-    #     step2['step'] = 2
-    #     k_b_param = k_b_param.append(step2, sort=False).reset_index(drop=True)
-    #
-    #     # 缺失品牌车系阶段3,临时
-    #     lack_models = self.car_autohome_all.loc[~(self.car_autohome_all['model_slug'].isin(list(set(k_b_param.model_slug.values)))), ['brand_slug', 'model_slug']].drop_duplicates(['model_slug']).reset_index(drop=True)
-    #     count = 0
-    #     step3 = pd.DataFrame([], columns=['brand_slug', 'model_slug', 'k', 'b'])
-    #     for i in range(0, len(lack_models)):
-    #         brand_slug, model_slug = lack_models.loc[i, ['brand_slug', 'model_slug']].values
-    #         k, b = k_b_param.loc[len(k_b_param) % 2 + int(len(k_b_param) / 2) - 1, ['k', 'b']].values
-    #         step3.loc[count, ['brand_slug', 'model_slug', 'k', 'b']] = [brand_slug, model_slug, k, b]
-    #         count = count + 1
-    #     step3['model_slug'] = step3['model_slug'].astype(int)
-    #     step3['step'] = 3
-    #     k_b_param = k_b_param.append(step3, sort=False).reset_index(drop=True)
-    #
-    #     k_b_param = k_b_param.merge(self.car_autohome_all.loc[:, ['brand_name', 'model_slug', 'model_name', 'body', 'energy']].drop_duplicates(['model_slug']), how='left', on=['model_slug'])
-    #     k_b_param.to_csv(path + '../tmp/train/model_k_param.csv', index=False)
+        self.copy_files_to_api_project()
