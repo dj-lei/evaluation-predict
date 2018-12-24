@@ -306,23 +306,6 @@ def query_model_product_sale_source_data(start_time, model_slug):
     return pd.read_sql_query(query_sql, engine)
 
 
-def query_produce_car_source():
-    """
-    查询款型库
-    """
-    pub_time = (datetime.datetime.now() - datetime.timedelta(days=180)).strftime('%Y-%m-%d')
-
-    # query_sql = 'select cs.pub_time,cs.brand_slug,cs.model_slug,cs.model_detail_slug,cs.mile,cs.year,cs.month,cs.city,cs.province,cs.popularity,cs.domain,cs.price,omd.price_bn,cs.status,cs.source_type,cs.expired_at,cs.sold_time from car_source as cs ' \
-    #             'left join open_model_detail as omd on cs.model_detail_slug = omd.detail_model_slug ' \
-    #             ' where cs.global_sibling = 0 and cs.model_detail_slug is not null and cs.pub_time >= \''+pub_time+'\' '
-
-    query_sql = 'select cs.pub_time,cs.id,cs.title,cs.mile,cs.year,cs.month,cs.province,cs.domain,cs.price from car_source as cs ' \
-                ' where cs.global_sibling = 0  and domain in (\'guazi.com\',\'renrenche.com\',\'xin.com\') and cs.pub_time >= \''+pub_time+'\' '
-
-    engine = create_engine(gl.PRODUCE_PINGJIA_ENGINE, encoding=gl.ENCODING)
-    return pd.read_sql_query(query_sql, engine)
-
-
 def query_produce_competitor_data():
     """
     查询竞品数据
@@ -334,26 +317,6 @@ def query_produce_competitor_data():
                     ' where vmcd.competitor_id = 2 and vmcd.valuate_price is not null '
 
     engine = create_engine(gl.PRODUCE_VALUATE_ENGINE, encoding=gl.ENCODING)
-    return pd.read_sql_query(query_sql, engine)
-
-
-def query_produce_open_model_detail():
-    """
-    查询款型库
-    """
-    query_sql = 'select id,price_bn,global_slug,year,volume,control,emission_standard,detail_model,detail_model_slug,status from open_model_detail where status = \'Y\' or status = \'A\' '
-
-    engine = create_engine(gl.PRODUCE_PINGJIA_ENGINE, encoding=gl.ENCODING)
-    return pd.read_sql_query(query_sql, engine)
-
-
-def query_produce_open_category():
-    """
-    查询车型库
-    """
-    query_sql = 'select id,name,slug,parent,classified,classified_slug,attribute,brand_area from open_category where status = \'Y\' or status = \'A\''
-
-    engine = create_engine(gl.PRODUCE_PINGJIA_ENGINE, encoding=gl.ENCODING)
     return pd.read_sql_query(query_sql, engine)
 
 
@@ -438,3 +401,90 @@ def insert_c2b_least_squares_data(data):
     time.sleep(0.2)
 
     data.to_sql(name=gl.VALUATE_C2B_LEAST_SQUARES_DATA, if_exists='append', con=engine, index=False)
+
+
+def query_produce_car_source():
+    """
+    查询款型库
+    """
+    pub_time = (datetime.datetime.now() - datetime.timedelta(days=180)).strftime('%Y-%m-%d')
+
+    # query_sql = 'select cs.pub_time,cs.brand_slug,cs.model_slug,cs.model_detail_slug,cs.mile,cs.year,cs.month,cs.city,cs.province,cs.popularity,cs.domain,cs.price,omd.price_bn,cs.status,cs.source_type,cs.expired_at,cs.sold_time from car_source as cs ' \
+    #             'left join open_model_detail as omd on cs.model_detail_slug = omd.detail_model_slug ' \
+    #             ' where cs.global_sibling = 0 and cs.model_detail_slug is not null and cs.pub_time >= \''+pub_time+'\' '
+
+    query_sql = 'select cs.pub_time,cs.id,cs.title,cs.mile,cs.year,cs.month,cs.province,cs.domain,cs.price from car_source as cs ' \
+                ' where cs.global_sibling = 0  and domain in (\'guazi.com\',\'renrenche.com\',\'xin.com\') and cs.pub_time >= \''+pub_time+'\' '
+
+    engine = create_engine(gl.PRODUCE_PINGJIA_ENGINE, encoding=gl.ENCODING)
+    return pd.read_sql_query(query_sql, engine)
+
+
+def query_produce_open_model_detail():
+    """
+    查询款型库
+    """
+    query_sql = 'select id,price_bn,global_slug,year,volume,control,emission_standard,detail_model,detail_model_slug,status from open_model_detail where status = \'Y\' or status = \'A\' '
+
+    engine = create_engine(gl.PRODUCE_PINGJIA_ENGINE, encoding=gl.ENCODING)
+    return pd.read_sql_query(query_sql, engine)
+
+
+def insert_or_update_base_standard_open_category(data):
+    """
+    查询款型库
+    """
+    engine = create_engine(gl.TEST_PINGJIA_ENGINE, encoding=gl.ENCODING)
+
+    columns_update = [column_name + '=' + 'VALUES(' + column_name + ')' for column_name in list(data.columns)]
+    columns_update = str(columns_update).replace('\'', '')
+    columns_update = columns_update[1:len(columns_update) - 1]
+
+    columns_name = str(list(data.columns)[1:])
+    columns_name = columns_name[1:len(columns_name) - 1]
+    columns_name = columns_name.replace('\'', '')
+    with engine.begin() as con:
+        for i in range(0, len(data)):
+            if str(data.loc[i, 'id']) == 'nan':
+                value = str([v if str(v) != 'nan' else 'null' for v in list(data.loc[i, :].values)][1:])
+                value = value[1:len(value) - 1]
+                value = re.sub(r'\'null\'', 'null', value)
+                sql = 'INSERT INTO china_used_car_estimate.base_standard_open_category (' + columns_name + ') VALUES (' + value + ')'
+            else:
+                value = str(list(data.loc[i, :].values))
+                value = value[1:len(value) - 1]
+                value = re.sub(r' nan', ' null', value)
+                sql = 'INSERT INTO china_used_car_estimate.base_standard_open_category VALUES (' + value + ') ON DUPLICATE KEY UPDATE ' + columns_update
+            print(sql)
+            con.execute(sql)
+    con.close()
+
+
+def insert_or_update_base_standard_open_model_detail(data):
+    """
+    查询款型库
+    """
+    engine = create_engine(gl.TEST_PINGJIA_ENGINE, encoding=gl.ENCODING)
+
+    columns_update = [column_name + '=' + 'VALUES(' + column_name + ')' for column_name in list(data.columns)]
+    columns_update = str(columns_update).replace('\'', '')
+    columns_update = columns_update[1:len(columns_update) - 1]
+
+    columns_name = str(list(data.columns)[1:])
+    columns_name = columns_name[1:len(columns_name) - 1]
+    columns_name = columns_name.replace('\'', '')
+    with engine.begin() as con:
+        for i in range(0, len(data)):
+            if str(data.loc[i, 'id']) == 'nan':
+                value = str([v if str(v) != 'nan' else 'null' for v in list(data.loc[i, :].values)][1:])
+                value = value[1:len(value) - 1]
+                value = re.sub(r'\'null\'', 'null', value)
+                sql = 'INSERT INTO china_used_car_estimate.base_standard_open_model_detail (' + columns_name + ') VALUES (' + value + ')'
+            else:
+                value = str(list(data.loc[i, :].values))
+                value = value[1:len(value) - 1]
+                value = re.sub(r' nan', ' null', value)
+                sql = 'INSERT INTO china_used_car_estimate.base_standard_open_model_detail VALUES (' + value + ') ON DUPLICATE KEY UPDATE ' + columns_update
+            print(sql)
+            con.execute(sql)
+    con.close()

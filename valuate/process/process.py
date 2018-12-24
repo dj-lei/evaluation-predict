@@ -19,9 +19,13 @@ class Process(object):
             # manual.execute()
 
             # 特征工程
+            # time1 = time.time()
+            # fe = FeatureEngineering()
+            # fe.execute()
+            # time2 = time.time()
+
             time1 = time.time()
-            fe = FeatureEngineering()
-            fe.execute()
+            process_tables.update_relative_data()
             time2 = time.time()
             print(time2-time1)
 
