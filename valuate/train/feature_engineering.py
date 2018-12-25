@@ -254,6 +254,7 @@ class FeatureEngineering(object):
         part1 = pd.read_csv(path + '../tmp/train/global_model_mean_part1.csv')
         low_config_car = pd.read_csv(path + '../tmp/train/global_model_mean_part2.csv')
         div_price_bn_k_param = pd.read_csv(path + '../tmp/train/div_price_bn_k_param.csv')
+        combine_detail = pd.read_csv(path + '../tmp/train/combine_detail.csv')
 
         car_autohome_all = self.car_autohome_all.copy()
         car_autohome_all = car_autohome_all.sort_values(by=['brand_slug', 'model_slug', 'online_year', 'price_bn']).reset_index(drop=True)
@@ -273,6 +274,7 @@ class FeatureEngineering(object):
             part2 = part2.append(car_autohome_temp, sort=False).reset_index(drop=True)
 
         global_model_mean = part1.append(part2, sort=False)
+        global_model_mean = global_model_mean.merge(combine_detail.loc[:, ['detail_model_slug', 'car_autohome_detail_id']].rename(columns={'car_autohome_detail_id':'detail_slug'}), how='left', on=['detail_slug'])
         global_model_mean.to_csv(path + '../tmp/train/global_model_mean.csv', index=False)
 
     def generate_province_div_map(self):
@@ -316,6 +318,7 @@ class FeatureEngineering(object):
         miss_province['k'] = 0
         miss_province['b'] = 0
         k_param = k_param.append(miss_province, sort=False)
+        k_param = k_param.merge(self.province_city_map.loc[:, ['province', 'city']], how='left', on=['province'])
         k_param.to_csv(path + '../tmp/train/div_province_k_param.csv', index=False)
 
     def generate_warehouse_years_div_map(self):
@@ -373,23 +376,6 @@ class FeatureEngineering(object):
         k = pd.DataFrame([[k, b]], columns=['k', 'b'])
         k.to_csv(path + '../tmp/train/div_mile_k_param.csv', index=False)
 
-    def copy_files_to_api_project(self):
-        """
-        拷贝文件到evaluation-api项目
-        """
-        evaluation_api_path = '/home/ml/ProgramProject/evaluation-api/tmp/'
-
-        div_price_bn_k_param = pd.read_csv(path + '../tmp/train/div_price_bn_k_param.csv')
-        div_price_bn_k_param.to_csv(evaluation_api_path + 'div_price_bn_k_param.csv', index=False)
-        div_province_k_param = pd.read_csv(path + '../tmp/train/div_province_k_param.csv')
-        div_province_k_param.to_csv(evaluation_api_path + 'div_province_k_param.csv', index=False)
-        div_warehouse_k_param = pd.read_csv(path + '../tmp/train/div_warehouse_k_param.csv')
-        div_warehouse_k_param.to_csv(evaluation_api_path + 'div_warehouse_k_param.csv', index=False)
-        div_mile_k_param = pd.read_csv(path + '../tmp/train/div_mile_k_param.csv')
-        div_mile_k_param.to_csv(evaluation_api_path + 'div_mile_k_param.csv', index=False)
-        global_model_mean = pd.read_csv(path + '../tmp/train/global_model_mean.csv')
-        global_model_mean.to_csv(evaluation_api_path + 'global_model_mean.csv', index=False)
-
     def execute(self):
         """
         执行
@@ -397,11 +383,9 @@ class FeatureEngineering(object):
         # self.handle_data_quality()
         # self.handle_data_preprocess()
         # self.generate_price_bn_div_map()
-        self.generate_model_map()
-        # self.generate_manual_model_map()
-        self.generate_province_div_map()
+        # self.generate_model_map()
+        self.generate_manual_model_map()
+        # self.generate_province_div_map()
         # self.generate_warehouse_years_div_map()
         # self.generate_mile_div_map()
-        # self.generate_global_model_mean_map()
 
-        self.copy_files_to_api_project()

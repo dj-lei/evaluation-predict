@@ -12,12 +12,6 @@ class Process(object):
         处理所有品牌
         """
         try:
-            # 存储训练相关表
-            # process_tables.store_train_relative_data()
-            # # 生成训练相关表
-            # manual = Manual()
-            # manual.execute()
-
             # 特征工程
             # time1 = time.time()
             # fe = FeatureEngineering()
@@ -25,7 +19,7 @@ class Process(object):
             # time2 = time.time()
 
             time1 = time.time()
-            process_tables.update_relative_data()
+            process_tables.update_all()
             time2 = time.time()
             print(time2-time1)
 
