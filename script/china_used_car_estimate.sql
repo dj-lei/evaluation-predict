@@ -44,12 +44,8 @@ CREATE TABLE IF NOT EXISTS `china_used_car_estimate`.`base_standard_open_categor
   `score` int(11) NOT NULL DEFAULT '0' COMMENT '权重',
   `normalized_name` varchar(255) DEFAULT NULL COMMENT '规则化车系，用于显示',
   `brand_area` varchar(20) DEFAULT NULL COMMENT '产地:德系/欧系/美系/日系/国产/法系/韩系',
-  `car_autohome_brand_id` int(11) DEFAULT NULL COMMENT '汽车之家品牌id',
-  `car_autohome_model_id` int(11) DEFAULT NULL COMMENT '汽车之家车系id',
   PRIMARY KEY (`id`),
-  KEY i_slug(slug),
-  KEY i_car_autohome_brand_id(car_autohome_brand_id),
-  KEY i_car_autohome_model_id(car_autohome_model_id)
+  KEY i_slug(slug)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='公平价品牌型号对应关系';
 
 CREATE TABLE IF NOT EXISTS `china_used_car_estimate`.`base_standard_open_model_detail` (
@@ -78,14 +74,13 @@ CREATE TABLE IF NOT EXISTS `china_used_car_estimate`.`base_standard_open_model_d
   `continuity_id` int(11) DEFAULT NULL COMMENT '标记款型连续,同一组款型标记一致',
   `body_model` varchar(10) DEFAULT NULL COMMENT '车身型式',
   `created_on` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  `car_autohome_detail_id` int(11) DEFAULT NULL COMMENT '汽车之家款型id',
   PRIMARY KEY (`id`),
-  KEY i_detail_model_slug(detail_model_slug),
-  KEY i_car_autohome_detail_id(car_autohome_detail_id)
+  KEY i_detail_model_slug(detail_model_slug)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='GPJ款型关系';
 
 CREATE TABLE IF NOT EXISTS `china_used_car_estimate`.`valuate_global_model_mean` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
+  `detail_model_slug` varchar(50) DEFAULT NULL COMMENT '全局款型名称',
   `detail_slug` int(11) DEFAULT NULL COMMENT '汽车之家款型id',
   `brand_name` varchar(50) DEFAULT NULL COMMENT '款型名称',
   `brand_slug` int(11) DEFAULT NULL COMMENT '款型id',

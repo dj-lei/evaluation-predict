@@ -10,6 +10,7 @@ def insert_or_update_brand_model():
 
     base_standard_open_category = combine_brand.append(combine_model, sort=False).reset_index(drop=True)
     base_standard_open_category = base_standard_open_category.sort_values(by=['id']).reset_index(drop=True)
+    base_standard_open_category = base_standard_open_category.drop(['car_autohome_brand_id', 'car_autohome_model_id'], axis=1)
     db_operate.insert_or_update_base_standard_open_category(base_standard_open_category)
 
 
@@ -18,6 +19,8 @@ def insert_or_update_detail():
     插入或更新款型库
     """
     combine_detail = pd.read_csv(path + '../tmp/train/combine_detail.csv')
+    combine_detail = combine_detail.sort_values(by=['id']).reset_index(drop=True)
+    combine_detail = combine_detail.drop(['car_autohome_detail_id'], axis=1)
     db_operate.insert_or_update_base_standard_open_model_detail(combine_detail)
 
 
@@ -41,8 +44,8 @@ def update_all():
     """
     更新数据到数据库
     """
-    # insert_or_update_brand_model()
-    # insert_or_update_detail()
+    insert_or_update_brand_model()
+    insert_or_update_detail()
     insert_global_model_mean()
-    # insert_province_city()
+    insert_province_city()
 
