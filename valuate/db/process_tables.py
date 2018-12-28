@@ -19,6 +19,7 @@ def insert_or_update_detail():
     插入或更新款型库
     """
     combine_detail = pd.read_csv(path + '../tmp/train/combine_detail.csv')
+    combine_detail.loc[(combine_detail['year'] == 2019), 'year'] = 2018
     combine_detail = combine_detail.sort_values(by=['id']).reset_index(drop=True)
     combine_detail = combine_detail.drop(['car_autohome_detail_id'], axis=1)
     db_operate.insert_or_update_base_standard_open_model_detail(combine_detail)
