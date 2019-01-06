@@ -256,10 +256,8 @@ class FeatureEngineering(object):
         low_config_car['median_price'] = low_config_car['median_price'] / 0.95
         div_price_bn_k_param = pd.read_csv(path + '../tmp/train/div_price_bn_k_param.csv')
         combine_detail = pd.read_csv(path + '../tmp/train/combine_detail.csv')
-        add_combine_detail = pd.read_csv(path + '../tmp/train/add_combine_detail.csv')
 
         car_autohome_all = self.car_autohome_all.copy()
-        car_autohome_all = car_autohome_all.loc[~(car_autohome_all['detail_slug'].isin(list(add_combine_detail.car_autohome_detail_id.values))), :].reset_index(drop=True)
         car_autohome_all = car_autohome_all.sort_values(by=['brand_slug', 'model_slug', 'online_year', 'price_bn']).reset_index(drop=True)
         car_autohome_all['used_years'] = datetime.datetime.now().year - car_autohome_all['online_year']
         car_autohome_all.loc[(car_autohome_all['used_years'] < 0), 'used_years'] = 0
@@ -279,8 +277,10 @@ class FeatureEngineering(object):
             part2 = part2.append(car_autohome_temp, sort=False).reset_index(drop=True)
 
         global_model_mean = part1.append(part2, sort=False).reset_index(drop=True)
+        print('最终组合款型数:', len(global_model_mean))
         global_model_mean = global_model_mean.merge(combine_detail.loc[:, ['detail_model_slug', 'car_autohome_detail_id']].rename(columns={'car_autohome_detail_id':'detail_slug'}), how='left', on=['detail_slug'])
-        global_model_mean = global_model_mean.loc[(global_model_mean['detail_slug'].isin(list(car_autohome_all.detail_slug.values))), :]
+        global_model_mean = global_model_mean.loc[(global_model_mean['detail_model_slug'].notnull()), :]
+        print('最终组合款型数:', len(global_model_mean))
         global_model_mean.to_csv(path + '../tmp/train/global_model_mean.csv', index=False)
 
     def generate_province_div_map(self):
