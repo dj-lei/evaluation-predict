@@ -14,8 +14,8 @@ class Process(object):
         try:
             # 特征工程
             # time1 = time.time()
-            # fe = FeatureEngineering()
-            # fe.execute()
+            fe = FeatureEngineering()
+            fe.execute()
             # time2 = time.time()
 
             time1 = time.time()

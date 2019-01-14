@@ -386,12 +386,12 @@ class FeatureEngineering(object):
         """
         执行
         """
-        # self.handle_data_quality()
-        # self.handle_data_preprocess()
-        # self.generate_price_bn_div_map()
-        # self.generate_model_map()
+        self.handle_data_quality()
+        self.handle_data_preprocess()
+        self.generate_price_bn_div_map()
+        self.generate_model_map()
         self.generate_manual_model_map()
-        # self.generate_province_div_map()
-        # self.generate_warehouse_years_div_map()
-        # self.generate_mile_div_map()
+        self.generate_province_div_map()
+        self.generate_warehouse_years_div_map()
+        self.generate_mile_div_map()
 

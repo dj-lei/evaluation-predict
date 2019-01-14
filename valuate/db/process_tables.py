@@ -6,7 +6,9 @@ def insert_or_update_brand_model():
     插入或更新品牌车系
     """
     combine_brand = pd.read_csv(path + '../tmp/train/combine_brand.csv')
+    combine_brand.loc[(combine_brand['brand_area'].isnull()), 'brand_area'] = '国产'
     combine_model = pd.read_csv(path + '../tmp/train/combine_model.csv')
+    combine_model.loc[(combine_model['attribute'].isnull()), 'attribute'] = '国产'
     combine_model = combine_model.drop(['car_autohome_model_id'], axis=1)
 
     base_standard_open_category = combine_brand.append(combine_model, sort=False).reset_index(drop=True)
