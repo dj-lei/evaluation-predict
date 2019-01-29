@@ -105,7 +105,7 @@ class FeatureEngineering(object):
         self.train = pd.read_csv(path + '../tmp/train/car_source_match.csv')
         self.car_autohome_all = pd.read_csv(path + '../tmp/train/car_autohome_all.csv')
         self.car_autohome_all = self.car_autohome_all.drop(['volume', 'control', 'volume_extend', 'emission_standard'], axis=1)
-        self.province_city_map = pd.read_csv(path + 'predict/map/province_city_map.csv')
+        self.province_city_map = pd.read_csv(path + '../tmp/train/province_city_map.csv')
 
     ###########################
     # 数据清洗
@@ -167,7 +167,8 @@ class FeatureEngineering(object):
         median_price = self.train.groupby(['brand_slug', 'brand_name', 'model_slug', 'model_name', 'detail_slug', 'online_year', 'price_bn'])['price'].median().reset_index().rename(columns={'price': 'median_price'})
         median_price = median_price.sort_values(by=['brand_slug', 'model_slug', 'online_year', 'price_bn']).reset_index(drop=True)
 
-        median_price['used_years'] = datetime.datetime.now().year - median_price['online_year']
+        # median_price['used_years'] = datetime.datetime.now().year - median_price['online_year']
+        median_price['used_years'] = 2018 - median_price['online_year']
         median_price.loc[(median_price['used_years'] < 0), 'used_years'] = 0
 
         # 根据年限,统计指导价差值的价格差
@@ -389,9 +390,9 @@ class FeatureEngineering(object):
         self.handle_data_quality()
         self.handle_data_preprocess()
         self.generate_price_bn_div_map()
-        self.generate_model_map()
-        self.generate_manual_model_map()
-        self.generate_province_div_map()
+        # self.generate_model_map()
+        # self.generate_manual_model_map()
         self.generate_warehouse_years_div_map()
-        self.generate_mile_div_map()
+        # self.generate_province_div_map()
+        # self.generate_mile_div_map()
 

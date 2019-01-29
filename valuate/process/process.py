@@ -17,7 +17,7 @@ class Process(object):
             fe = FeatureEngineering()
             fe.execute()
             # 更新数据库
-            process_tables.update_all()
+            # process_tables.update_all()
             time2 = time.time()
             print(time2-time1)
 

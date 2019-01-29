@@ -22,6 +22,13 @@ def insert_or_update_detail():
     """
     combine_detail = pd.read_csv(path + '../tmp/train/combine_detail.csv')
     # combine_detail.loc[(combine_detail['year'] == 2019), 'year'] = 2018
+
+    open_model_detail = pd.read_csv(path + '../tmp/train/open_model_detail.csv')
+    open_model_detail = open_model_detail.loc[~(open_model_detail['model_detail_slug'].isin(list(set(combine_detail.detail_model_slug.values)))), :]
+    open_model_detail = open_model_detail.rename(columns={'model_detail_slug': 'detail_model_slug'})
+    open_model_detail['status'] = 'D'
+    combine_detail = combine_detail.append(open_model_detail, sort=False)
+
     combine_detail = combine_detail.sort_values(by=['id']).reset_index(drop=True)
     combine_detail = combine_detail.drop(['car_autohome_detail_id'], axis=1)
     db_operate.insert_or_update_base_standard_open_model_detail(combine_detail)

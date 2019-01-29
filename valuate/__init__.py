@@ -20,8 +20,6 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = '3'
 
 # 重定位根路径
 from valuate.conf import global_settings as gl
-from valuate.conf import feature_settings as fs
-from valuate.conf import algorithm_settings as als
 
 path = os.path.abspath(os.path.dirname(gl.__file__))
 path = path.replace('conf', '')
@@ -47,7 +45,6 @@ from scipy.optimize import leastsq
 
 from valuate.db import db_operate
 from valuate.db import process_tables
-from valuate.manual.manual import Manual
 
 from valuate.process.process import Process
 
