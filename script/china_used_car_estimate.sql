@@ -78,6 +78,32 @@ CREATE TABLE IF NOT EXISTS `china_used_car_estimate`.`base_standard_open_model_d
   KEY i_detail_model_slug(detail_model_slug)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='GPJ款型关系';
 
+CREATE TABLE IF NOT EXISTS `china_used_car_estimate`.`base_car_deal_history` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `brand_zh` varchar(32) DEFAULT NULL COMMENT '品牌名称',
+  `model_zh` varchar(32) DEFAULT NULL COMMENT '车系名称',
+  `model_detail_zh` varchar(50) DEFAULT NULL COMMENT '款型名称',
+  `brand_slug` varchar(32) DEFAULT NULL COMMENT '品牌slug',
+  `model_slug` varchar(32) DEFAULT NULL COMMENT '车系slug',
+  `model_detail_slug` varchar(32) DEFAULT NULL COMMENT '款型slug',
+  `year` int(11) NOT NULL DEFAULT '0' COMMENT '年份',
+  `month` int(11) NOT NULL DEFAULT '6' COMMENT '月份',
+  `mile` decimal(5,2) DEFAULT NULL COMMENT '公里数',
+  `volume` decimal(5,1) DEFAULT NULL COMMENT '排量',
+  `color` varchar(32) DEFAULT NULL COMMENT '颜色',
+  `control` varchar(32) DEFAULT NULL COMMENT '变速器',
+  `province` varchar(50) DEFAULT NULL COMMENT '省份',
+  `city` varchar(50) DEFAULT NULL COMMENT '城市',
+  `deal_time` datetime DEFAULT NULL COMMENT '交易时间',
+  `price` decimal(10,2) DEFAULT NULL COMMENT '价格',
+  `create_time` datetime NOT NULL COMMENT '创建时间',
+  `deal_type` varchar(20) DEFAULT NULL COMMENT '交易类型',
+  `source` varchar(50) DEFAULT NULL COMMENT '来源',
+  `condition` varchar(20) DEFAULT NULL COMMENT '车况',
+  PRIMARY KEY (`id`),
+  KEY i_model_detail_slug(model_detail_slug)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='车源历史交易数据';
+
 CREATE TABLE IF NOT EXISTS `china_used_car_estimate`.`valuate_global_model_mean` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `detail_model_slug` varchar(50) DEFAULT NULL COMMENT '全局款型名称',

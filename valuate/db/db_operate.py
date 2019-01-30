@@ -57,6 +57,22 @@ def insert_valuate_province_city(data):
     data.to_sql(name='valuate_province_city', if_exists='append', con=engine, index=False)
 
 
+def insert_base_car_deal_history(data):
+    """
+    插入
+    """
+    engine = create_engine(gl.TEST_PINGJIA_ENGINE, encoding=gl.ENCODING)
+
+    with engine.begin() as con:
+        sql = 'TRUNCATE TABLE china_used_car_estimate.base_car_deal_history'
+        con.execute(sql)
+    con.close()
+
+    for i in range(0, int(len(data)/50000)+1):
+        temp = data.loc[i*50000:(i+1)*50000-1, :].reset_index(drop=True)
+        temp.to_sql(name='base_car_deal_history', if_exists='append', con=engine, index=False)
+
+
 # def insert_or_update_base_standard_open_category(data):
 #     """
 #     插入或更新

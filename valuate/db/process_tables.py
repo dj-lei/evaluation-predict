@@ -51,12 +51,21 @@ def insert_province_city():
     db_operate.insert_valuate_province_city(div_province_k_param)
 
 
+def insert_car_deal_history():
+    """
+    插入历史交易数据
+    """
+    car_deal_history = pd.read_csv(path + '../tmp/train/car_deal_history.csv')
+    db_operate.insert_base_car_deal_history(car_deal_history)
+
+
 def update_all():
     """
     更新数据到数据库
     """
-    insert_or_update_brand_model()
-    insert_or_update_detail()
-    insert_global_model_mean()
-    insert_province_city()
+    # insert_or_update_brand_model()
+    # insert_or_update_detail()
+    # insert_global_model_mean()
+    # insert_province_city()
+    insert_car_deal_history()
 
