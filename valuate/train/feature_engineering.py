@@ -99,6 +99,15 @@ def adjust_k(df):
         return df['k']
 
 
+def price_process(df):
+    """
+    依据平台调整价格
+    """
+    if df['domain'] == 'guazi.com':
+        return df['price'] * 0.96
+    return df['price']
+
+
 class FeatureEngineering(object):
 
     def __init__(self):
@@ -125,6 +134,8 @@ class FeatureEngineering(object):
         self.train = self.train[self.train['city'].isin(cities)].reset_index(drop=True)
         self.train = self.train.merge(self.province_city_map.loc[:, ['province', 'city']], how='left', on=['city'])
         self.train.reset_index(inplace=True, drop='index')
+        # 调整瓜子平台价格
+        # self.train['price'] = self.train.apply(price_process, axis=1)
 
     def handle_data_preprocess(self):
         """
@@ -167,8 +178,7 @@ class FeatureEngineering(object):
         median_price = self.train.groupby(['brand_slug', 'brand_name', 'model_slug', 'model_name', 'detail_slug', 'online_year', 'price_bn'])['price'].median().reset_index().rename(columns={'price': 'median_price'})
         median_price = median_price.sort_values(by=['brand_slug', 'model_slug', 'online_year', 'price_bn']).reset_index(drop=True)
 
-        # median_price['used_years'] = datetime.datetime.now().year - median_price['online_year']
-        median_price['used_years'] = 2018 - median_price['online_year']
+        median_price['used_years'] = datetime.datetime.now().year - median_price['online_year']
         median_price.loc[(median_price['used_years'] < 0), 'used_years'] = 0
 
         # 根据年限,统计指导价差值的价格差
@@ -246,6 +256,7 @@ class FeatureEngineering(object):
             part2 = part2.loc[(part2['median_price'].isnull()), :].reset_index(drop=True)
             # 取低配数据
             part2 = part2.loc[part2.groupby(['brand_slug', 'model_slug', 'online_year']).price_bn.idxmin(), :].reset_index(drop=True)
+            part2 = part2.drop(['listed_year'], axis=1)
             part2.to_csv(path + '../tmp/train/global_model_mean_part2.csv', index=False)
 
     def generate_manual_model_map(self):
@@ -279,6 +290,7 @@ class FeatureEngineering(object):
 
         global_model_mean = part1.append(part2, sort=False).reset_index(drop=True)
         print('最终组合款型数:', len(global_model_mean))
+        global_model_mean.to_csv(path + '../tmp/train/autohome_global_model_mean.csv', index=False)
         global_model_mean = global_model_mean.merge(combine_detail.loc[:, ['detail_model_slug', 'car_autohome_detail_id']].rename(columns={'car_autohome_detail_id':'detail_slug'}), how='left', on=['detail_slug'])
         global_model_mean = global_model_mean.loc[(global_model_mean['detail_model_slug'].notnull()), :]
         print('最终组合款型数:', len(global_model_mean))
@@ -387,9 +399,9 @@ class FeatureEngineering(object):
         """
         执行
         """
-        self.handle_data_quality()
-        self.handle_data_preprocess()
-        self.generate_price_bn_div_map()
+        # self.handle_data_quality()
+        # self.handle_data_preprocess()
+        # self.generate_price_bn_div_map()
         # self.generate_model_map()
         # self.generate_manual_model_map()
         self.generate_warehouse_years_div_map()

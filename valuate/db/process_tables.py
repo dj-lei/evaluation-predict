@@ -65,7 +65,7 @@ def update_all():
     """
     # insert_or_update_brand_model()
     # insert_or_update_detail()
-    # insert_global_model_mean()
+    insert_global_model_mean()
     # insert_province_city()
-    insert_car_deal_history()
+    # insert_car_deal_history()
 
