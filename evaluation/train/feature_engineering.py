@@ -1,4 +1,4 @@
-from valuate.train import *
+from evaluation.train import *
 
 
 def cal_z_score(df):

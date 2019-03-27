@@ -34,3 +34,29 @@ elif RUNTIME_ENVIRONMENT == 'PRODUCT':
     TEST_DB_PASSWD = 'ldj_DEV_~!_0705'
     TEST_PINGJIA_ENGINE = 'mysql+pymysql://' + TEST_DB_USER + ':' + TEST_DB_PASSWD + '@' + TEST_DB_ADDR + '/china_used_car_estimate?charset=utf8'
 
+###########################
+# 模型预测配置
+###########################
+# 畅销程度系数
+PROFITS = {'A': (0.05, 0.095, 0.027, 0.02, 0.12, 0.08, 0.09, 0.006, -0.01),
+           'B': (0.05, 0.114, 0.031, 0.025, 0.14, 0.10, 0.10, 0.007, -0.01),
+           'C': (0.05, 0.134, 0.02, 0.03, 0.16, 0.12, 0.11, 0.003, -0.01)}
+
+# 各车况因素的系数
+CAR_CONDITION = ['excellent', 'good', 'fair', 'bad']
+CAR_CONDITION_COEFFICIENT = {'excellent': 1.04, 'good': 1, 'fair': 0.95, 'bad': 0.89}
+CAR_CONDITION_COEFFICIENT_VALUES = [1.04, 1, 0.95, 0.89]
+
+# 交易方式
+INTENT_TYPE = ['sell', 'buy', 'release', 'private', 'lowest', 'cpo', 'replace', 'auction', 'avg-buy', 'avg-sell']
+INTENT_TYPE_CAN = ['buy', 'buy', 'buy', 'buy', 'buy', 'buy', 'buy', 'buy', 'buy', 'buy']
+
+# 返回类型
+RETURN_RECORDS = 'records'
+RETURN_NORMAL = 'normal'
+
+###########################
+# 异常类型
+###########################
+ERROR_PARAMS = 'PARAMS'
+ERROR_SQL = 'SQL'

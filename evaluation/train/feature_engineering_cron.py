@@ -1,4 +1,4 @@
-from valuate.train import *
+from evaluation.train import *
 
 
 def cal_z_score(df):
@@ -197,9 +197,9 @@ class FeatureEngineeringCron(object):
         """
         执行
         """
-        # self.handle_data_quality()
-        # self.handle_data_preprocess()
-        # self.update_model_map()
-        # self.update_retain_high_config()
+        self.handle_data_quality()
+        self.handle_data_preprocess()
+        self.update_model_map()
+        self.update_retain_high_config()
         self.compare_exception()
 

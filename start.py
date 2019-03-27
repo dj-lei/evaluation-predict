@@ -1,7 +1,7 @@
 import sys
 sys.path.append('../')
 
-from valuate import *
+from evaluation import *
 
 
 def process_all_models():

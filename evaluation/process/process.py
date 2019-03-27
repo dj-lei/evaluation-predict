@@ -1,4 +1,4 @@
-from valuate.process import *
+from evaluation.process import *
 
 
 class Process(object):

@@ -1,4 +1,4 @@
-from valuate.db import *
+from evaluation.db import *
 
 
 def insert_or_update_brand_model():
