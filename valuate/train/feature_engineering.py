@@ -5,6 +5,8 @@ def cal_z_score(df):
     """
     计算z得分
     """
+    if df['std_value'] <= 0:
+        return 0
     return abs((df['price'] - df['mean_value']) / (df['std_value']))
 
 
@@ -111,7 +113,7 @@ def price_process(df):
 class FeatureEngineering(object):
 
     def __init__(self):
-        self.train = pd.read_csv(path + '../tmp/train/car_source_match.csv')
+        self.train = pd.read_csv(path + '../tmp/train/train.csv')
         self.car_autohome_all = pd.read_csv(path + '../tmp/train/car_autohome_all.csv')
         self.car_autohome_all = self.car_autohome_all.drop(['volume', 'control', 'volume_extend', 'emission_standard'], axis=1)
         self.province_city_map = pd.read_csv(path + '../tmp/train/province_city_map.csv')
@@ -134,8 +136,6 @@ class FeatureEngineering(object):
         self.train = self.train[self.train['city'].isin(cities)].reset_index(drop=True)
         self.train = self.train.merge(self.province_city_map.loc[:, ['province', 'city']], how='left', on=['city'])
         self.train.reset_index(inplace=True, drop='index')
-        # 调整瓜子平台价格
-        # self.train['price'] = self.train.apply(price_process, axis=1)
 
     def handle_data_preprocess(self):
         """
@@ -163,13 +163,13 @@ class FeatureEngineering(object):
         self.train = self.train.loc[(self.train['z_score'] <= 1.5), :]
         self.train.reset_index(inplace=True, drop=True)
         self.train = self.train.drop(['mean_value', 'std_value', 'z_score'], axis=1)
-        self.train.to_csv(path + '../tmp/train/train.csv', index=False)
+        self.train.to_csv(path + '../tmp/train/train_temp.csv', index=False)
 
     def generate_price_bn_div_map(self):
         """
         生成指导价差异表
         """
-        self.train = pd.read_csv(path + '../tmp/train/train.csv')
+        self.train = pd.read_csv(path + '../tmp/train/train_temp.csv')
 
         # 上牌时间和上市时间相同
         self.train = self.train.loc[(self.train['online_year'] == self.train['year']), :].reset_index(drop=True)
@@ -217,7 +217,7 @@ class FeatureEngineering(object):
         """
         生成全款型全国均值模型
         """
-        self.train = pd.read_csv(path + '../tmp/train/train.csv')
+        self.train = pd.read_csv(path + '../tmp/train/train_temp.csv')
         div_price_bn_k_param = pd.read_csv(path + '../tmp/train/div_price_bn_k_param.csv')
         car_autohome_all = self.car_autohome_all.copy()
         car_autohome_all = car_autohome_all.sort_values(by=['brand_slug', 'model_slug', 'online_year', 'price_bn']).reset_index(drop=True)
@@ -300,7 +300,7 @@ class FeatureEngineering(object):
         """
         生成省份差异表
         """
-        self.train = pd.read_csv(path + '../tmp/train/train.csv')
+        self.train = pd.read_csv(path + '../tmp/train/train_temp.csv')
 
         # 上牌时间和上市时间相同
         self.train = self.train.loc[(self.train['online_year'] == self.train['year']), :].reset_index(drop=True)
@@ -344,7 +344,7 @@ class FeatureEngineering(object):
         """
         上牌年份差异表
         """
-        self.train = pd.read_csv(path + '../tmp/train/train.csv')
+        self.train = pd.read_csv(path + '../tmp/train/train_temp.csv')
         # 根据款型计算中位数
         median_price = self.train.groupby(['brand_slug', 'brand_name', 'model_slug', 'model_name', 'detail_slug', 'online_year', 'price_bn', 'year'])['price'].median().reset_index().rename(columns={'price': 'median_price'})
         median_price = median_price.sort_values(by=['brand_slug', 'model_slug', 'online_year', 'price_bn']).reset_index(drop=True)
@@ -378,7 +378,7 @@ class FeatureEngineering(object):
         """
         公里数差异
         """
-        self.train = pd.read_csv(path + '../tmp/train/train.csv')
+        self.train = pd.read_csv(path + '../tmp/train/train_temp.csv')
         # 上牌时间和上市时间相同
         self.train = self.train.loc[(self.train['online_year'] == self.train['year']), :].reset_index(drop=True)
 
@@ -399,12 +399,12 @@ class FeatureEngineering(object):
         """
         执行
         """
-        # self.handle_data_quality()
-        # self.handle_data_preprocess()
-        # self.generate_price_bn_div_map()
+        self.handle_data_quality()
+        self.handle_data_preprocess()
+        self.generate_price_bn_div_map()
         # self.generate_model_map()
         # self.generate_manual_model_map()
-        self.generate_warehouse_years_div_map()
+        # self.generate_warehouse_years_div_map()
         # self.generate_province_div_map()
         # self.generate_mile_div_map()
 

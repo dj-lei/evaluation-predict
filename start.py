@@ -12,5 +12,14 @@ def process_all_models():
     process.process_all_models()
 
 
+def process_cron():
+    """
+    执行日常
+    """
+    process = Process()
+    process.process_cron()
+
+
 if __name__ == "__main__":
-    process_all_models()
+    # process_all_models()
+    process_cron()

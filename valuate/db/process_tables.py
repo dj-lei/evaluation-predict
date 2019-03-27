@@ -6,9 +6,8 @@ def insert_or_update_brand_model():
     插入或更新品牌车系
     """
     combine_brand = pd.read_csv(path + '../tmp/train/combine_brand.csv')
-    combine_brand.loc[(combine_brand['brand_area'].isnull()), 'brand_area'] = '国产'
     combine_model = pd.read_csv(path + '../tmp/train/combine_model.csv')
-    combine_model.loc[(combine_model['attribute'].isnull()), 'attribute'] = '国产'
+    combine_brand = combine_brand.drop(['car_autohome_brand_id'], axis=1)
     combine_model = combine_model.drop(['car_autohome_model_id'], axis=1)
 
     base_standard_open_category = combine_brand.append(combine_model, sort=False).reset_index(drop=True)
@@ -21,7 +20,6 @@ def insert_or_update_detail():
     插入或更新款型库
     """
     combine_detail = pd.read_csv(path + '../tmp/train/combine_detail.csv')
-    # combine_detail.loc[(combine_detail['year'] == 2019), 'year'] = 2018
 
     open_model_detail = pd.read_csv(path + '../tmp/train/open_model_detail.csv')
     open_model_detail = open_model_detail.loc[~(open_model_detail['model_detail_slug'].isin(list(set(combine_detail.detail_model_slug.values)))), :]
@@ -63,8 +61,8 @@ def update_all():
     """
     更新数据到数据库
     """
-    # insert_or_update_brand_model()
-    # insert_or_update_detail()
+    insert_or_update_brand_model()
+    insert_or_update_detail()
     insert_global_model_mean()
     # insert_province_city()
     # insert_car_deal_history()

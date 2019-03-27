@@ -14,8 +14,6 @@ if RUNTIME_ENVIRONMENT == 'LOCAL':
     PRODUCE_DB_USER = 'leidengjun'
     PRODUCE_DB_PASSWD = 'ldj_DEV_~!'
     PRODUCE_PINGJIA_ENGINE = 'mysql+pymysql://'+PRODUCE_DB_USER+':'+PRODUCE_DB_PASSWD+'@'+PRODUCE_DB_ADDR_OUTTER+'/pingjia?charset=utf8'
-    PRODUCE_VALUATE_ENGINE = 'mysql+pymysql://' + PRODUCE_DB_USER + ':' + PRODUCE_DB_PASSWD + '@' + PRODUCE_DB_ADDR_OUTTER + '/valuate?charset=utf8'
-    PRODUCE_DATASOURCE_ENGINE = 'mysql+pymysql://'+PRODUCE_DB_USER+':'+PRODUCE_DB_PASSWD+'@'+PRODUCE_DB_ADDR_OUTTER+'/datasource?charset=utf8'
 
     # 测试库
     TEST_DB_ADDR = '101.200.229.249'
@@ -29,8 +27,6 @@ elif RUNTIME_ENVIRONMENT == 'PRODUCT':
     PRODUCE_DB_USER = 'valuate_user'
     PRODUCE_DB_PASSWD = 'ldj_DEV_~!_0705'
     PRODUCE_PINGJIA_ENGINE = 'mysql+pymysql://' + PRODUCE_DB_USER + ':' + PRODUCE_DB_PASSWD + '@' + PRODUCE_DB_ADDR_OUTTER + '/pingjia?charset=utf8'
-    PRODUCE_VALUATE_ENGINE = 'mysql+pymysql://' + PRODUCE_DB_USER + ':' + PRODUCE_DB_PASSWD + '@' + PRODUCE_DB_ADDR_OUTTER + '/valuate?charset=utf8'
-    PRODUCE_DATASOURCE_ENGINE = 'mysql+pymysql://' + PRODUCE_DB_USER + ':' + PRODUCE_DB_PASSWD + '@' + PRODUCE_DB_ADDR_OUTTER + '/datasource?charset=utf8'
 
     # 生产库
     TEST_DB_ADDR = '10.174.11.103:3306'
