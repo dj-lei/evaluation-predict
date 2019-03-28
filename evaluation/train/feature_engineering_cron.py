@@ -127,15 +127,14 @@ class FeatureEngineeringCron(object):
                 car_autohome_temp.loc[i, 'median_price'] = float('%.2f' % ((car_autohome_temp.loc[i, 'price_bn'] - price_bn) * k + low_config_price))
             result = result.append(car_autohome_temp, sort=False).reset_index(drop=True)
         result = result.drop_duplicates(['detail_slug'])
-        result.to_csv(path + '../tmp/train/global_model_mean_temp.csv', index=False)
+        result.to_csv(path + '../tmp/train/global_model_mean_temp_part1.csv', index=False)
 
     def update_retain_high_config(self):
         """
         保留高配价格
         """
         def retain_high_config(df):
-            normal_update_price = median_price.loc[
-                (median_price['detail_slug'] == df['detail_slug']), 'median_price'].values
+            normal_update_price = median_price.loc[(median_price['detail_slug'] == df['detail_slug']), 'median_price'].values
             if len(normal_update_price) == 0:
                 return df['median_price']
 
@@ -148,7 +147,7 @@ class FeatureEngineeringCron(object):
 
         combine_detail = pd.read_csv(path + '../tmp/train/combine_detail.csv', low_memory=False)
         origin_train = pd.read_csv(path + '../tmp/train/train_temp.csv')
-        global_model_mean_temp = pd.read_csv(path + '../tmp/train/global_model_mean_temp.csv')
+        global_model_mean_temp = pd.read_csv(path + '../tmp/train/global_model_mean_temp_part1.csv')
         div_price_bn_k_param = pd.read_csv(path + '../tmp/train/div_price_bn_k_param.csv')
 
         # 上牌时间和上市时间相同
@@ -164,18 +163,18 @@ class FeatureEngineeringCron(object):
         model_online = retain_high_config_price.drop_duplicates(['model_slug', 'online_year'])
 
         # 调整指导价差,确保同条件下高配比低配价格高
-        result_retain = pd.DataFrame()
-        for model_slug, online_year in model_online.loc[:, ['model_slug', 'online_year']].values:
-            car_autohome_temp = retain_high_config_price.loc[(retain_high_config_price['model_slug'] == model_slug) & (retain_high_config_price['online_year'] == online_year), :].reset_index(drop=True)
-            used_years = car_autohome_temp.loc[0, 'used_years']
-            k = div_price_bn_k_param.loc[(div_price_bn_k_param['used_years'] == used_years), ['k']].values[0]
-            for i in range(0, len(car_autohome_temp) - 1):
-                if car_autohome_temp.loc[i, 'median_price'] > car_autohome_temp.loc[i + 1, 'median_price']:
-                    div_price_bn = car_autohome_temp.loc[i + 1, 'price_bn'] - car_autohome_temp.loc[i, 'price_bn']
-                    car_autohome_temp.loc[i + 1, 'median_price'] = float('%.3f' % (div_price_bn * k + car_autohome_temp.loc[i, 'median_price']))
-            result_retain = result_retain.append(car_autohome_temp, sort=False).reset_index(drop=True)
+        # result_retain = pd.DataFrame()
+        # for model_slug, online_year in model_online.loc[:, ['model_slug', 'online_year']].values:
+        #     car_autohome_temp = retain_high_config_price.loc[(retain_high_config_price['model_slug'] == model_slug) & (retain_high_config_price['online_year'] == online_year), :].reset_index(drop=True)
+        #     used_years = car_autohome_temp.loc[0, 'used_years']
+        #     k = div_price_bn_k_param.loc[(div_price_bn_k_param['used_years'] == used_years), ['k']].values[0]
+        #     for i in range(0, len(car_autohome_temp) - 1):
+        #         if car_autohome_temp.loc[i, 'median_price'] > car_autohome_temp.loc[i + 1, 'median_price']:
+        #             div_price_bn = car_autohome_temp.loc[i + 1, 'price_bn'] - car_autohome_temp.loc[i, 'price_bn']
+        #             car_autohome_temp.loc[i + 1, 'median_price'] = float('%.3f' % (div_price_bn * k + car_autohome_temp.loc[i, 'median_price']))
+        #     result_retain = result_retain.append(car_autohome_temp, sort=False).reset_index(drop=True)
 
-        final = result_retain.copy()
+        final = retain_high_config_price.copy()
         final = final.sort_values(by=['brand_slug', 'model_slug', 'online_year', 'price_bn']).reset_index(drop=True)
         final = final.merge(combine_detail.loc[:, ['detail_model_slug', 'car_autohome_detail_id']].rename(columns={'car_autohome_detail_id': 'detail_slug'}), how='left', on=['detail_slug'])
         final.to_csv(path + '../tmp/train/global_model_mean_temp.csv', index=False)
@@ -197,9 +196,9 @@ class FeatureEngineeringCron(object):
         """
         执行
         """
-        self.handle_data_quality()
-        self.handle_data_preprocess()
+        # self.handle_data_quality()
+        # self.handle_data_preprocess()
         self.update_model_map()
         self.update_retain_high_config()
-        self.compare_exception()
+        # self.compare_exception()
 

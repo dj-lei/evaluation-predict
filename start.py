@@ -20,6 +20,12 @@ def process_cron():
     process.process_cron()
 
 
+def test():
+    process = Process()
+    process.test()
+
+
 if __name__ == "__main__":
     # process_all_models()
-    process_cron()
+    # process_cron()
+    test()

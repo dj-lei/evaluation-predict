@@ -36,3 +36,11 @@ class Process(object):
 
         except Exception as e:
             print(traceback.format_exc())
+
+    def test(self):
+        """
+        测试
+        """
+        predict_local = PredictLocal()
+        result = predict_local.predict(city='苏州', model_detail_slug='m8991_xc', reg_year=2011, reg_month=3, mile=5, ret_type='normal')
+        print(result)

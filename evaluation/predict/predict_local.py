@@ -10,8 +10,10 @@ def get_profit_rate(intent, popularity, price):
     profit = profits[popularity]
 
     rate = 0.34 * math.e ** (-0.6 * math.log(price / 10000, math.e))
+
     if rate <= 0.101:
         rate = 0.101
+
     # rate = 0.48 * math.e ** (-0.304 * (price / 10000)) + 0.08
 
     # 计算各交易方式的价格相比于标价的固定比例
@@ -216,6 +218,7 @@ class PredictLocal(object):
         online_year, median_price = self.result.loc[0, :].values
         k, b = self.div_province_k_param.loc[(self.div_province_k_param['city'] == city), ['k', 'b']].values[0]
         median_price = int(median_price * 10000)
+
         # 省份差异
         province_price = k * median_price + b
 

@@ -34,6 +34,7 @@ from scipy.optimize import leastsq
 from evaluation.db import db_operate
 from evaluation.db import process_tables
 
+from evaluation.predict.predict_local import PredictLocal
 from evaluation.process.process import Process
 
 
