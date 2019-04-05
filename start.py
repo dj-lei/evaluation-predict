@@ -26,6 +26,6 @@ def test():
 
 
 if __name__ == "__main__":
-    # process_all_models()
+    process_all_models()
     # process_cron()
-    test()
+    # test()

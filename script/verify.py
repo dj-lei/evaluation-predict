@@ -31,6 +31,11 @@ if __name__ == "__main__":
                                  price=verify['price'][i], intent='sell', condition=verify['condition'][i], city=verify['city'][i], reg_year=int(verify['year'][i]), reg_month=int(verify['month'][i]),
                                  deal_year=datetime.datetime.now().year, deal_month=datetime.datetime.now().month,
                                  mile=verify['mile'][i])['data']
+        if temp == '':
+            temp = pd.DataFrame(index=[0])
+            temp['id'] = verify['id'][i]
+            result = result.append(temp, sort=False)
+            continue
         temp = pd.DataFrame(temp, index=[0])
         temp['id'] = verify['id'][i]
         temp = temp.loc[:, ['id', 'brand_name', 'model_name', 'detail_name', 'gpj_detail_slug', 'eval_price', 'online_year']]

@@ -61,8 +61,8 @@ def update_all():
     """
     更新数据到数据库
     """
-    insert_or_update_brand_model()
-    insert_or_update_detail()
+    # insert_or_update_brand_model()
+    # insert_or_update_detail()
     insert_global_model_mean()
     # insert_province_city()
     # insert_car_deal_history()
