@@ -1,6 +1,21 @@
 from evaluation.train import *
 
 
+def func_no_b(a, x):
+    """
+    拟合函数
+    """
+    k = a
+    return k * x
+
+
+def dist_no_b(a, x, y):
+    """
+    残差
+    """
+    return func_no_b(a, x) - y
+
+
 def cal_z_score(df):
     """
     计算z得分
@@ -25,6 +40,10 @@ class FeatureEngineeringCron(object):
 
     def __init__(self):
         self.train = pd.read_csv(path + '../tmp/train/train.csv')
+        self.train = self.train.loc[(self.train['type'] == 'personal'), :].reset_index(drop=True)
+
+        self.sell = self.train.loc[(self.train['type'] == 'sell'), :].reset_index(drop=True)
+
         self.car_autohome_all = pd.read_csv(path + '../tmp/train/car_autohome_all.csv')
         self.car_autohome_all = self.car_autohome_all.drop(['volume', 'control', 'volume_extend', 'emission_standard'], axis=1)
         self.province_city_map = pd.read_csv(path + '../tmp/train/province_city_map.csv')
@@ -73,6 +92,54 @@ class FeatureEngineeringCron(object):
         self.train.reset_index(inplace=True, drop=True)
         self.train = self.train.drop(['mean_value', 'std_value', 'z_score'], axis=1)
         self.train.to_csv(path + '../tmp/train/train_temp.csv', index=False)
+
+    def update_price_bn_div_map(self):
+        """
+        更新指导价差异表
+        """
+        self.train = pd.read_csv(path + '../tmp/train/train_temp.csv')
+
+        # 上牌时间和上市时间相同
+        self.train = self.train.loc[(self.train['online_year'] == self.train['year']), :].reset_index(drop=True)
+
+        # 根据款型计算中位数
+        median_price = self.train.groupby(['brand_slug', 'brand_name', 'model_slug', 'model_name', 'detail_slug', 'online_year', 'price_bn'])['price'].median().reset_index().rename(columns={'price': 'median_price'})
+        median_price = median_price.sort_values(by=['brand_slug', 'model_slug', 'online_year', 'price_bn']).reset_index(drop=True)
+
+        median_price['used_years'] = datetime.datetime.now().year - median_price['online_year']
+        median_price.loc[(median_price['used_years'] < 0), 'used_years'] = 0
+
+        # 根据年限,统计指导价差值的价格差
+        model_year = median_price.loc[:, ['brand_slug', 'model_slug', 'used_years']]
+        model_year = model_year.drop_duplicates(['brand_slug', 'model_slug', 'used_years']).reset_index(drop=True)
+
+        count = 0
+        result = pd.DataFrame([], columns=['brand_slug', 'model_slug', 'used_years', 'price_bn_div', 'price_div'])
+        for brand_slug, model_slug, used_years in model_year.loc[:, ['brand_slug', 'model_slug', 'used_years']].values:
+            temp = median_price.loc[(median_price['model_slug'] == model_slug) & (median_price['used_years'] == used_years), :].reset_index(drop=True)
+            if len(temp) <= 1:
+                continue
+            for i in range(1, len(temp)):
+                price_bn_div = temp.loc[i, 'price_bn'] - temp.loc[0, 'price_bn']
+                price_div = temp.loc[i, 'median_price'] - temp.loc[0, 'median_price']
+                result.loc[count, ['brand_slug', 'model_slug', 'used_years', 'price_bn_div', 'price_div']] = [brand_slug, model_slug, used_years, price_bn_div, price_div]
+                count = count + 1
+        result = result.loc[(result['price_bn_div'] <= 100) & (result['price_div'] > 0), :].reset_index(drop=True)
+        result.to_csv(path + '../tmp/train/div_price_bn_data.csv', index=False)
+
+        count = 0
+        k_param = pd.DataFrame([], columns=['used_years', 'k'])
+        for used_years in list(set(result.used_years.values)):
+            temp = result.loc[(result['used_years'] == used_years), :].reset_index(drop=True)
+            if len(temp) <= 1:
+                continue
+            param = [0]
+            var = leastsq(dist_no_b, param, args=(np.array(list(temp.price_bn_div.values)), np.array(list(temp.price_div.values))))
+            k = var[0][0]
+            k_param.loc[count, ['used_years', 'k']] = [used_years, k]
+            count = count + 1
+        k_param = k_param.sort_values(by=['used_years']).reset_index(drop=True)
+        k_param.to_csv(path + '../tmp/train/div_price_bn_k_param.csv', index=False)
 
     def update_model_map(self):
         """
@@ -198,6 +265,7 @@ class FeatureEngineeringCron(object):
         """
         # self.handle_data_quality()
         # self.handle_data_preprocess()
+        # self.update_price_bn_div_map()
         self.update_model_map()
         self.update_retain_high_config()
         # self.compare_exception()

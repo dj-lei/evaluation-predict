@@ -9,18 +9,18 @@ def get_profit_rate(intent, popularity, price):
     profits = gl.PROFITS
     profit = profits[popularity]
 
-    rate = 0.34 * math.e ** (-0.6 * math.log(price / 10000, math.e))
+    # sell_price = 0.9 * price - 5670
+    # rate = sell_price / price
 
+    rate = 0.34 * math.e ** (-0.6 * math.log(price / 10000, math.e))
     if rate <= 0.101:
         rate = 0.101
-
-    # rate = 0.48 * math.e ** (-0.304 * (price / 10000)) + 0.08
 
     # 计算各交易方式的价格相比于标价的固定比例
     if intent == 'sell':
         # 商家收购价相比加权平均价的比例
         # profit_rate = 1 - profit[0] - profit[1]
-        profit_rate = (1 - profit[0])*(1-rate)
+        profit_rate = (1 - profit[0]) * (1-rate)
     elif intent == 'buy':
         # 商家真实售价相比加权平均价的比例
         profit_rate = 1 - profit[0]
@@ -79,64 +79,6 @@ def process_profit_rate(df, column_name, price):
     畅销系数处理
     """
     return get_profit_rate(df[column_name], df['popularity'], price)
-
-
-def cal_score(df):
-    """
-    计算车况评级每一项得分
-    """
-    if df['number'] == 0:
-        return df['number_0']
-    if df['number'] == 1:
-        return df['number_1']
-    if df['number'] == 2:
-        return df['number_2']
-    if df['number'] == 3:
-        return df['number_3']
-
-
-def cal_final_score_and_condition(data, cur_condition, mile_per_year):
-    """
-    计算最终得分和车况
-    """
-    score = 0
-    inner = data.loc[(data['position'] == '内饰'), 'score'].values[0]
-    outter = data.loc[(data['position'] == '外观'), 'score'].values[0]
-    structure = data.loc[(data['position'] == '机械结构'), 'score'].values[0]
-    reinforce = data.loc[(data['position'] == '车辆加强件'), 'score'].values[0]
-    skeleton = data.loc[(data['position'] == '车辆骨架或事故'), 'score'].values[0]
-    if skeleton > 35:
-        score = score + 35
-    score = score + skeleton
-    if outter > 20:
-        score = score + 20
-    score = score + outter
-    if inner > 15:
-        score = score + 15
-    score = score + inner
-    if reinforce > 10:
-        score = score + 10
-    score = score + reinforce
-    if structure > 20:
-        score = score + 20
-    score = score + structure
-
-    if mile_per_year > 3:
-        score = score + 5
-
-    final_score = 100 - score
-    if 92 <= final_score <= 100:
-        evalute_condition = 0
-    elif 78 <= final_score <= 91:
-        evalute_condition = 1
-    elif 65 <= final_score <= 77:
-        evalute_condition = 2
-    elif final_score < 65:
-        evalute_condition = 3
-
-    if evalute_condition > cur_condition:
-        return gl.CAR_CONDITION[evalute_condition]
-    return gl.CAR_CONDITION[cur_condition]
 
 
 def check_params_value(reg_year, reg_month, deal_year, deal_month, mile):
