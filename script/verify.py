@@ -27,7 +27,7 @@ if __name__ == "__main__":
     valuate = PredictLocal()
     for i in range(0, len(verify)):
         print(i, verify['title'][i], verify['year'][i], verify['month'][i])
-        temp = predict.predict(is_evaluation=True, detail_name=verify['title'][i], cos_similar=0,
+        temp = predict.predict(is_evaluation=True, detail_name=verify['title'][i], cos_similar=0.82,
                                  price=verify['price'][i], intent='sell', condition=verify['condition'][i], city=verify['city'][i], reg_year=int(verify['year'][i]), reg_month=int(verify['month'][i]),
                                  deal_year=datetime.datetime.now().year, deal_month=datetime.datetime.now().month,
                                  mile=verify['mile'][i])['data']
@@ -38,7 +38,7 @@ if __name__ == "__main__":
             continue
         temp = pd.DataFrame(temp, index=[0])
         temp['id'] = verify['id'][i]
-        temp = temp.loc[:, ['id', 'brand_name', 'model_name', 'detail_name', 'gpj_detail_slug', 'eval_price', 'online_year']]
+        temp = temp.loc[:, ['id', 'brand_name', 'model_name', 'detail_name', 'gpj_detail_slug', 'eval_price', 'online_year', 'control']]
 
         valuate_result = valuate.predict(city=verify['city'][i], model_detail_slug=temp['gpj_detail_slug'][0], reg_year=int(verify['year'][i]), reg_month=int(verify['month'][i]), deal_year=datetime.datetime.now().year, deal_month=datetime.datetime.now().month, mile=verify['mile'][i], ret_type='normal')
         new_price= valuate_result.loc[(valuate_result['intent'] == 'sell'), verify['condition'][i]].values[0]

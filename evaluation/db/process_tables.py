@@ -36,9 +36,15 @@ def insert_global_model_mean():
     """
     插入全国均价表
     """
-    global_model_mean = pd.read_csv(path + '../tmp/train/global_model_mean.csv')
-    global_model_mean = global_model_mean.drop(['listed_year'], axis=1)
-    db_operate.insert_valuate_global_model_mean(global_model_mean)
+    at = pd.read_csv(path + '../tmp/train/global_model_mean_temp_自动.csv')
+    mt = pd.read_csv(path + '../tmp/train/global_model_mean_temp_手动.csv')
+    final = at.append(mt, sort=False).reset_index(drop=True)
+    final = final.sort_values(by=['brand_slug', 'model_slug', 'online_year', 'price_bn']).reset_index(drop=True)
+    final.to_csv(path + '../tmp/train/global_model_mean.csv', index=False)
+    final.to_csv(path + '../tmp/train/global_model_mean_' + datetime.datetime.now().strftime("%Y-%m-%d") + '.csv', index=False)
+
+    final = final.drop(['listed_year', 'update_time', 'control'], axis=1)
+    db_operate.insert_valuate_global_model_mean(final)
 
 
 def insert_province_city():

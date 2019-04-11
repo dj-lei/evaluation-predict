@@ -154,10 +154,10 @@ class PredictLocal(object):
         check_params_value(reg_year, reg_month, deal_year, deal_month, mile)
 
         # 查询对应条件预测
-        self.result = self.global_model_mean.loc[(self.global_model_mean['detail_model_slug'] == model_detail_slug), ['online_year', 'median_price']].reset_index(drop=True)
+        self.result = self.global_model_mean.loc[(self.global_model_mean['detail_model_slug'] == model_detail_slug), ['online_year', 'median_price', 'control']].reset_index(drop=True)
         if len(self.result) == 0:
             raise ApiParamsValueError('model_detail_slug or city', 0, 'Unknown model or city!')
-        online_year, median_price = self.result.loc[0, :].values
+        online_year, median_price, control = self.result.loc[0, :].values
         k, b = self.div_province_k_param.loc[(self.div_province_k_param['city'] == city), ['k', 'b']].values[0]
         median_price = int(median_price * 10000)
 
@@ -169,7 +169,11 @@ class PredictLocal(object):
             warehouse_year = 0
         else:
             warehouse_year = reg_year - online_year
-        k = 0.028
+
+        if control == '自动':
+            k = 0.055
+        else:
+            k = 0.08
         warehouse_price = (k * warehouse_year) * median_price
 
         # 公里数差异
