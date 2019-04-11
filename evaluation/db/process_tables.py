@@ -43,7 +43,7 @@ def insert_global_model_mean():
     final.to_csv(path + '../tmp/train/global_model_mean.csv', index=False)
     final.to_csv(path + '../tmp/train/global_model_mean_' + datetime.datetime.now().strftime("%Y-%m-%d") + '.csv', index=False)
 
-    final = final.drop(['listed_year', 'update_time', 'control'], axis=1)
+    final = final.drop(['listed_year', 'update_time'], axis=1)
     db_operate.insert_valuate_global_model_mean(final)
 
 

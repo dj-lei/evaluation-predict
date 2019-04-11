@@ -30,7 +30,7 @@ class Process(object):
             # fe = FeatureEngineeringCron('手动')
             # fe.execute()
             # 更新数据库
-            process_tables.update_all()
+            # process_tables.update_all()
             time2 = time.time()
             print(time2-time1)
 

@@ -84,14 +84,22 @@ def adjust_all_price(df):
     return df['median_price']
 
 
+def is_adjust(df):
+    if abs(df['median_price'] - df['private_median_price']) <= 0.5:
+        return 1
+    elif (abs(df['private_median_price']-df['median_price'])/df['private_median_price']) <= 0.15:
+        return 1
+    return 0
+
+
 class FeatureEngineeringCron(object):
 
     def __init__(self, control):
         self.control = control
 
         car_source = pd.read_csv(path + '../tmp/train/train.csv')
-        self.train = car_source.loc[(car_source['type'] == 'personal')&(car_source['control'] == self.control), :].reset_index(drop=True)
-
+        self.train = car_source.loc[(car_source['type'] == 'personal') & (car_source['control'] == self.control), :].reset_index(drop=True)
+        self.sell = car_source.loc[(car_source['type'] == 'sell') & (car_source['control'] == self.control), :].reset_index(drop=True)
         self.car_autohome_all = pd.read_csv(path + '../tmp/train/car_autohome_all.csv')
         self.car_autohome_all = self.car_autohome_all.loc[(self.car_autohome_all['control'] == self.control), :].reset_index(drop=True)
         self.car_autohome_all = self.car_autohome_all.drop(['volume', 'volume_extend', 'emission_standard'], axis=1)
@@ -347,17 +355,20 @@ class FeatureEngineeringCron(object):
         天天拍车源反向校验
         """
         div_price_bn_k_param = pd.read_csv(path + '../tmp/train/div_price_bn_k_param_' + self.control + '.csv')
+        global_model_mean_temp = pd.read_csv(path + '../tmp/train/global_model_mean_temp_' + self.control + '.csv').rename(columns={'median_price': 'private_median_price'})
 
         car_autohome_all = self.car_autohome_all.copy()
         car_autohome_all = car_autohome_all.sort_values(by=['brand_slug', 'model_slug', 'online_year', 'price_bn']).reset_index(drop=True)
         car_autohome_all['used_years'] = datetime.datetime.now().year - car_autohome_all['online_year']
         car_autohome_all.loc[(car_autohome_all['used_years'] < 0), 'used_years'] = 0
 
-        global_model_mean_temp = pd.read_csv(path + '../tmp/train/global_model_mean_temp_' + self.control + '.csv').rename(columns={'detail_model_slug': 'gpj_detail_slug'})
-        tiantianpai = pd.read_csv(path + '../script/man.csv')
-        tiantianpai = tiantianpai.loc[(tiantianpai['control'] == self.control), :].reset_index(drop=True)
-        tiantianpai = tiantianpai.loc[:, ['title', 'year', 'month', 'mile', 'condition', 'city', 'price', 'gpj_detail_slug', 'brand_name','model_name', 'detail_name', 'online_year', 'new_sell_price', 'new_buy_price']]
-        tiantianpai = tiantianpai.merge(global_model_mean_temp.loc[:, ['gpj_detail_slug', 'brand_slug', 'model_slug', 'price_bn', 'detail_slug']],how='left', on=['gpj_detail_slug'])
+        # global_model_mean_temp = pd.read_csv(path + '../tmp/train/global_model_mean_temp_' + self.control + '.csv').rename(columns={'detail_model_slug': 'gpj_detail_slug'})
+        # tiantianpai = pd.read_csv(path + '../script/man.csv')
+        # tiantianpai = tiantianpai.loc[(tiantianpai['control'] == self.control), :].reset_index(drop=True)
+        # tiantianpai = tiantianpai.loc[:, ['title', 'year', 'month', 'mile', 'condition', 'city', 'price', 'gpj_detail_slug', 'brand_name','model_name', 'detail_name', 'online_year', 'new_sell_price', 'new_buy_price']]
+        # tiantianpai = tiantianpai.merge(global_model_mean_temp.loc[:, ['gpj_detail_slug', 'brand_slug', 'model_slug', 'price_bn', 'detail_slug']],how='left', on=['gpj_detail_slug'])
+
+        tiantianpai = self.sell.copy()
         tiantianpai['used_years'] = datetime.datetime.now().year - tiantianpai['online_year']
         tiantianpai.loc[(tiantianpai['used_years'] < 0), 'used_years'] = 0
 
@@ -372,12 +383,19 @@ class FeatureEngineeringCron(object):
         # 调整收购价和零售价
         tiantianpai['adjust_buy_price'] = tiantianpai.apply(cal_profit_rate, axis=1)
         # 调整车况
-        tiantianpai['adjust_buy_price'] = tiantianpai.apply(adjust_condition, axis=1)
+        # tiantianpai['adjust_buy_price'] = tiantianpai.apply(adjust_condition, axis=1)
 
         # 根据款型计算中位数
         median_price = tiantianpai.groupby(['brand_slug', 'brand_name', 'model_slug', 'model_name', 'detail_slug', 'detail_name', 'online_year', 'price_bn'])['adjust_buy_price'].median().reset_index().rename(columns={'adjust_buy_price': 'median_price'})
         median_price = median_price.sort_values(by=['brand_slug', 'model_slug', 'online_year', 'price_bn']).reset_index(drop=True)
-        median_price.to_csv(path + '../tmp/train/man.csv', index=False)
+
+        # 相对于个人车源筛选
+        median_price = median_price.merge(global_model_mean_temp.loc[:, ['detail_slug', 'private_median_price']],how='left', on=['detail_slug'])
+        median_price['is_adjust'] = median_price.apply(is_adjust, axis=1)
+        div = median_price.loc[(median_price['is_adjust'] == 0), :].reset_index(drop=True)
+        div.to_csv(path + '../tmp/train/差异较大对比_' + self.control + '.csv', index=False)
+        median_price = median_price.loc[(median_price['is_adjust'] == 1), :].reset_index(drop=True)
+
         # 取低配数据
         low_config_car = median_price.loc[median_price.groupby(['brand_slug', 'model_slug', 'online_year']).price_bn.idxmin(),:].reset_index(drop=True)
         low_config_car = low_config_car.drop_duplicates(['model_slug', 'online_year']).reset_index(drop=True)
@@ -430,8 +448,10 @@ class FeatureEngineeringCron(object):
         # self.handle_data_preprocess()
         # self.update_price_bn_div_map()
         # self.update_warehouse_years_div_map()
+
         # self.update_model_map()
         # self.update_retain_high_config()
         # self.ttp_reverse_examine()
+
         self.combine_final_detail()
 
