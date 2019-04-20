@@ -20,6 +20,7 @@ if RUNTIME_ENVIRONMENT == 'LOCAL':
     TEST_DB_USER = 'pingjia'
     TEST_DB_PASSWD = 'De32wsxC'
     TEST_PINGJIA_ENGINE = 'mysql+pymysql://'+TEST_DB_USER+':'+TEST_DB_PASSWD+'@'+TEST_DB_ADDR+'/china_used_car_estimate?charset=utf8'
+    TEST_PINGJIA_PINGJIA_ENGINE = 'mysql+pymysql://' + TEST_DB_USER + ':' + TEST_DB_PASSWD + '@' + TEST_DB_ADDR + '/pingjia?charset=utf8'
 
 elif RUNTIME_ENVIRONMENT == 'PRODUCT':
     # 生产库外网

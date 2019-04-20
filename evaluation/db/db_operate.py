@@ -14,19 +14,37 @@ def insert_or_update_base_standard_open_category(data):
 
     data.to_sql(name='base_standard_open_category', if_exists='append', con=engine, index=False)
 
+    engine = create_engine(gl.TEST_PINGJIA_PINGJIA_ENGINE, encoding=gl.ENCODING)
+
+    with engine.begin() as con:
+        sql = 'TRUNCATE TABLE pingjia.open_category'
+        con.execute(sql)
+    con.close()
+    data['url'] = data['url'].fillna('http://test')
+    data.to_sql(name='open_category', if_exists='append', con=engine, index=False)
+
 
 def insert_or_update_base_standard_open_model_detail(data):
     """
     插入或更新
     """
-    engine = create_engine(gl.TEST_PINGJIA_ENGINE, encoding=gl.ENCODING)
+    # engine = create_engine(gl.TEST_PINGJIA_ENGINE, encoding=gl.ENCODING)
+    #
+    # with engine.begin() as con:
+    #     sql = 'TRUNCATE TABLE china_used_car_estimate.base_standard_open_model_detail'
+    #     con.execute(sql)
+    # con.close()
+    #
+    # data.to_sql(name='base_standard_open_model_detail', if_exists='append', con=engine, index=False)
 
-    with engine.begin() as con:
-        sql = 'TRUNCATE TABLE china_used_car_estimate.base_standard_open_model_detail'
-        con.execute(sql)
-    con.close()
+    engine = create_engine(gl.TEST_PINGJIA_PINGJIA_ENGINE, encoding=gl.ENCODING)
 
-    data.to_sql(name='base_standard_open_model_detail', if_exists='append', con=engine, index=False)
+    # with engine.begin() as con:
+    #     sql = 'TRUNCATE TABLE pingjia.open_model_detail'
+    #     con.execute(sql)
+    # con.close()
+
+    data.to_sql(name='open_model_detail', if_exists='append', con=engine, index=False)
 
 
 def insert_valuate_global_model_mean(data):
