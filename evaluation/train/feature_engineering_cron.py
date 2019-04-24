@@ -297,6 +297,7 @@ class FeatureEngineeringCron(object):
         # combine_detail = pd.read_csv(path + '../tmp/train/combine_detail.csv', low_memory=False)
         # result = result.sort_values(by=['brand_slug', 'model_slug', 'online_year', 'price_bn']).reset_index(drop=True)
         # result = result.merge(combine_detail.loc[:, ['detail_model_slug', 'car_autohome_detail_id']].rename(columns={'car_autohome_detail_id': 'detail_slug'}), how='left', on=['detail_slug'])
+        result['step1_price'] = result['median_price']
         result.to_csv(path + '../tmp/train/global_model_mean_temp_' + self.control + '.csv', index=False)
 
     def update_retain_high_config(self):
@@ -347,6 +348,7 @@ class FeatureEngineeringCron(object):
         final = retain_high_config_price.copy()
         final = final.sort_values(by=['brand_slug', 'model_slug', 'online_year', 'price_bn']).reset_index(drop=True)
         final = final.merge(combine_detail.loc[:, ['detail_model_slug', 'car_autohome_detail_id']].rename(columns={'car_autohome_detail_id': 'detail_slug'}), how='left', on=['detail_slug'])
+        final['step2_price'] = final['median_price']
         final.to_csv(path + '../tmp/train/global_model_mean_temp_' + self.control + '.csv', index=False)
         print('最终组合款型数:', len(final))
 
@@ -356,6 +358,8 @@ class FeatureEngineeringCron(object):
         """
         div_price_bn_k_param = pd.read_csv(path + '../tmp/train/div_price_bn_k_param_' + self.control + '.csv')
         global_model_mean_temp = pd.read_csv(path + '../tmp/train/global_model_mean_temp_' + self.control + '.csv').rename(columns={'median_price': 'private_median_price'})
+        wait_reverse = pd.read_csv(path + '../tmp/train/wait_reverse.csv')
+        wait_reverse = wait_reverse.loc[(wait_reverse['control'] == self.control), :].reset_index(drop=True)
 
         car_autohome_all = self.car_autohome_all.copy()
         car_autohome_all = car_autohome_all.sort_values(by=['brand_slug', 'model_slug', 'online_year', 'price_bn']).reset_index(drop=True)
@@ -369,6 +373,8 @@ class FeatureEngineeringCron(object):
         # tiantianpai = tiantianpai.merge(global_model_mean_temp.loc[:, ['gpj_detail_slug', 'brand_slug', 'model_slug', 'price_bn', 'detail_slug']],how='left', on=['gpj_detail_slug'])
 
         tiantianpai = self.sell.copy()
+        tiantianpai = tiantianpai.append(wait_reverse, sort=False)
+        tiantianpai.to_csv(path + '../tmp/train/man.csv', index=False)
         tiantianpai['used_years'] = datetime.datetime.now().year - tiantianpai['online_year']
         tiantianpai.loc[(tiantianpai['used_years'] < 0), 'used_years'] = 0
 
@@ -415,6 +421,12 @@ class FeatureEngineeringCron(object):
 
         global_model_mean_temp = pd.read_csv(path + '../tmp/train/global_model_mean_temp_' + self.control + '.csv')
         global_model_mean_temp[['median_price', 'update_time']] = global_model_mean_temp.apply(update_price_ttp, args=(part1,), axis=1)
+
+        global_model_mean = pd.read_csv(path + '../tmp/train/global_model_mean.csv')
+        global_model_mean = global_model_mean.loc[(global_model_mean['control'] == self.control), :].reset_index(drop=True)
+
+        global_model_mean_temp['step3_price'] = global_model_mean_temp['median_price']
+        global_model_mean_temp = global_model_mean_temp.merge(global_model_mean.loc[:,['detail_slug','median_price']].rename(columns={'median_price':'last_verison_price'}),how='left',on=['detail_slug'])
         global_model_mean_temp.to_csv(path + '../tmp/train/global_model_mean_temp_' + self.control + '.csv', index=False)
 
     def compare_exception(self):
