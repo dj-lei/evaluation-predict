@@ -277,7 +277,6 @@ class FeatureEngineeringCron(object):
             part1 = part1.append(car_autohome_temp, sort=False).reset_index(drop=True)
 
         low_config_car = part1.loc[part1.groupby(['brand_slug', 'model_slug', 'online_year']).price_bn.idxmin(), :].reset_index(drop=True)
-        # low_config_car = low_config_car.drop_duplicates(['model_slug', 'online_year']).reset_index(drop=True)
         global_model_mean[['median_price', 'update_time']] = global_model_mean.apply(update_price, args=(low_config_car,), axis=1)
 
         # 调整指导价差,确保同条件下高配比低配价格高
@@ -458,8 +457,8 @@ class FeatureEngineeringCron(object):
         """
         # self.handle_data_quality()
         # self.handle_data_preprocess()
-        # self.update_price_bn_div_map()
-        # self.update_warehouse_years_div_map()
+        ## self.update_price_bn_div_map()
+        ## self.update_warehouse_years_div_map()
 
         # self.update_model_map()
         # self.update_retain_high_config()
